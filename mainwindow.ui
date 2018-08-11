@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>888</width>
-    <height>584</height>
+    <width>892</width>
+    <height>589</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,16 +19,48 @@
      <rect>
       <x>10</x>
       <y>0</y>
-      <width>871</width>
-      <height>481</height>
+      <width>782</width>
+      <height>194</height>
      </rect>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QListView" name="Filelistview"/>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="1" column="0">
+      <widget class="QListView" name="Filelistview">
+       <property name="selectionMode">
+        <enum>QAbstractItemView::NoSelection</enum>
+       </property>
+      </widget>
      </item>
-     <item>
-      <widget class="QListView" name="Filechoiceview"/>
+     <item row="1" column="2">
+      <widget class="QPlainTextEdit" name="LogText"/>
+     </item>
+     <item row="1" column="1">
+      <widget class="QListWidget" name="Filelistwidget">
+       <property name="resizeMode">
+        <enum>QListView::Fixed</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Model based</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Item based</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Log</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -38,7 +70,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>888</width>
+     <width>892</width>
      <height>22</height>
     </rect>
    </property>

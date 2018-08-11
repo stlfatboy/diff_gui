@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QListWidget>
 
 namespace Ui {
 class MainWindow;
@@ -16,13 +17,17 @@ public:
     ~MainWindow();
 
     void loadfilelist();
+    void createconnections();
 
 private slots:
     void on_Filelistview_doubleClicked(const QModelIndex &index);
 
+    void on_Filelistwidget_itemChanged(QListWidgetItem *item);
+
 private:
     Ui::MainWindow *ui;
     QStringList m_filelist;
+    QStringList m_targetfilelist;
 };
 
 #endif // MAINWINDOW_H
