@@ -3,6 +3,7 @@
 
 #include <QStringListModel>
 #include <QDebug>
+#include <QProcess>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -10,21 +11,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // load file list
-    loadfilelist();
-
-    auto model = new QStringListModel(m_filelist);
-    ui->Filelistview->setModel(model);
-
-    for (auto file : m_filelist)
-    {
-        //TODO: store these item objects
-        //dont forget delete
-        QListWidgetItem* item = new QListWidgetItem(file, ui->Filelistwidget);
-        item->setCheckState(Qt::Checked);
-        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-    }
-
+      // Not using model
+//    auto model = new QStringListModel(m_filelist);
+//    ui->Filelistview->setModel(model);
 }
 
 MainWindow::~MainWindow()
@@ -34,20 +23,26 @@ MainWindow::~MainWindow()
 
 void MainWindow::loadfilelist()
 {
+    //read list
     m_filelist << "file1";
     m_filelist << "file2";
     m_filelist << "file3";
+
+
+    // show file list
+    for (auto file : m_filelist)
+    {
+        //TODO: store these item objects
+        //dont forget delete
+        QListWidgetItem* item = new QListWidgetItem(file, ui->Filelistwidget);
+        item->setCheckState(Qt::Checked);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+    }
 }
 
 void MainWindow::createconnections()
 {
 
-}
-
-void MainWindow::on_Filelistview_doubleClicked(const QModelIndex &index)
-{
-    const QString filename = index.data().toString();
-    ui->LogText->appendPlainText(QStringLiteral("Add '%1'").arg(filename));
 }
 
 void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
@@ -57,7 +52,7 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         if (m_targetfilelist.empty())
         {
             m_targetfilelist.push_back(item->text());
-            qInfo() << "Add " << item->text() << ", Remain:" << m_targetfilelist.size();
+            ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
             return;
         }
 
@@ -73,7 +68,7 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         }
 
         m_targetfilelist.push_back(item->text());
-        qInfo() << "Add " << item->text() << ", Remain:" << m_targetfilelist.size();
+        ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
     }
     else if (item->checkState() == Qt::Unchecked)
     {
@@ -84,11 +79,19 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
             if(s == item->text())
             {
                 m_targetfilelist.removeOne(*itr);
-                qInfo() << "Remove " << item->text() << ", Remain:" << m_targetfilelist.size();
+                ui->LogText->appendPlainText(QStringLiteral("Remove %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
+                //qInfo() << "Remove " << item->text() << ", Remain:" << m_targetfilelist.size();
                 return;
             }
             ++itr;
         }
 
     }
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    //QProcess::execute("mousepad /home/ducksoul/Documents/a.txt");
+    // load file list
+    loadfilelist();
 }

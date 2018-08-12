@@ -20,9 +20,9 @@ public:
     void createconnections();
 
 private slots:
-    void on_Filelistview_doubleClicked(const QModelIndex &index);
-
     void on_Filelistwidget_itemChanged(QListWidgetItem *item);
+
+    void on_pushButton_clicked();
 
 private:
     Ui::MainWindow *ui;
