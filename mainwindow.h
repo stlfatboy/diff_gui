@@ -17,16 +17,14 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void setaddr(char* addr);
-
+    void setaddr(char *addr);
+    void startupjobs(char* addr);
     void loadfilelist();
     void showfilelist();
-    void gen_targetfilelist();
+    void run_diffcmd();
 
 private slots:
     void on_Filelistwidget_itemChanged(QListWidgetItem *item);
-
-    void on_pushButton_clicked();
 
     void on_pushButton_2_clicked();
 
