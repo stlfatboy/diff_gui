@@ -81,16 +81,35 @@ void MainWindow::loadfilelist()
         {
             QString line = in.readLine();
             std::string stline = line.toStdString();
+            std::string filename;
 
             // locate modified file
             std::size_t pos = stline.find_first_of("M");
             if (pos != std::string::npos && pos == 0)
             {
-                //ui->LogText->appendPlainText(QStringLiteral("Readline %1").arg(line));
-                //qDebug() << line;
-                m_filelist << stline.substr(8).c_str();
+                filename = stline.substr(8);
+                m_filelist << filename.c_str();
+                m_Real_Display.insert({filename, stline});
+                m_Display_Real.insert({stline, filename});
             }
 
+            pos = stline.find_first_of("D");
+            if(pos != std::string::npos && pos == 0)
+            {
+                filename = stline.substr(8);
+                m_filelist << filename.c_str();
+                m_Real_Display.insert({filename, stline});
+                m_Display_Real.insert({stline, filename});
+            }
+
+            pos = stline.find_first_of("A");
+            if(pos != std::string::npos && pos == 0)
+            {
+                filename = stline.substr(8);
+                m_filelist << filename.c_str();
+                m_Real_Display.insert({filename, stline});
+                m_Display_Real.insert({stline, filename});
+            }
         }
     }
 
@@ -103,7 +122,7 @@ void MainWindow::showfilelist()
     {
         //TODO: store these item objects
         //dont forget delete
-        QListWidgetItem* item = new QListWidgetItem(file, ui->Filelistwidget);
+        QListWidgetItem* item = new QListWidgetItem( m_Real_Display.at(file.toStdString()).c_str(), ui->Filelistwidget);
         item->setCheckState(Qt::Checked);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     }
@@ -146,7 +165,7 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
     {
         if (m_targetfilelist.empty())
         {
-            m_targetfilelist.push_back(item->text());
+            m_targetfilelist.push_back(m_Display_Real.at(item->text().toStdString()).c_str());
             ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
             return;
         }
@@ -155,14 +174,14 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         while (itr != m_targetfilelist.end())
         {
             QString s = *itr;
-            if(s == item->text())
+            if(s == m_Display_Real.at(item->text().toStdString()).c_str())
             {
                 return;
             }
             ++itr;
         }
 
-        m_targetfilelist.push_back(item->text());
+        m_targetfilelist.push_back(m_Display_Real.at(item->text().toStdString()).c_str());
         ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
     }
     else if (item->checkState() == Qt::Unchecked)
@@ -171,11 +190,10 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         while (itr != m_targetfilelist.end())
         {
             QString s = *itr;
-            if(s == item->text())
+            if(s == m_Display_Real.at(item->text().toStdString()).c_str())
             {
                 m_targetfilelist.removeOne(*itr);
                 ui->LogText->appendPlainText(QStringLiteral("Remove %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
-                //qInfo() << "Remove " << item->text() << ", Remain:" << m_targetfilelist.size();
                 return;
             }
             ++itr;

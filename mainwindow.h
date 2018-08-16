@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QListWidget>
 #include <QFile>
+#include <unordered_map>
+#include <QMap>
 
 namespace Ui {
 class MainWindow;
@@ -30,6 +32,8 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    std::unordered_map<std::string, std::string> m_Real_Display;
+    std::unordered_map<std::string, std::string> m_Display_Real;
     QStringList m_filelist;
     QStringList m_targetfilelist;
 
