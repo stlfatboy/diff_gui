@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>options.ico</file>
+    </qresource>
+</RCC>

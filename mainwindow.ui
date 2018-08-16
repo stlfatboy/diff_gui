@@ -17,11 +17,14 @@
    <enum>Qt::NoContextMenu</enum>
   </property>
   <property name="windowTitle">
-   <string>Diff_GUI</string>
+   <string notr="true">Diff_GUI</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>cow.png</normaloff>cow.png</iconset>
+   <iconset resource="res.qrc">
+    <normaloff>:/icon/options.ico</normaloff>:/icon/options.ico</iconset>
+  </property>
+  <property name="windowOpacity">
+   <double>1.000000000000000</double>
   </property>
   <property name="autoFillBackground">
    <bool>true</bool>
@@ -122,6 +125,8 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections/>
 </ui>
