@@ -39,6 +39,8 @@ private:
 
     QString m_addr;
     QString m_diff;
+
+    QFile* m_diff_file;
 };
 
 #endif // MAINWINDOW_H

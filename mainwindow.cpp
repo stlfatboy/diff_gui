@@ -9,16 +9,22 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label->setText("Ver." + QDate().currentDate().toString(Qt::ISODate));
+    ui->label->setText("Build." + QDate(2018,8,16).toString(Qt::ISODate));
     ui->pushButton_2->setDisabled(true);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    if (m_diff_file != nullptr)
+    {
+        m_diff_file->remove();
+        delete m_diff_file;
+    }
 }
 
 void MainWindow::setaddr(char *addr)
@@ -132,10 +138,10 @@ void MainWindow::run_diffcmd()
 {
 
     // create diff cmd
-    QFile file("Diff_utility.bat");
-    if (file.open(QIODevice::WriteOnly))
+    m_diff_file = new QFile("Diff_utility.bat");
+    if (m_diff_file->open(QIODevice::WriteOnly))
     {
-        QTextStream out(&file);
+        QTextStream out(m_diff_file);
         out << "cd " << m_addr << "\n";
         out << "svn diff ";
         for(auto target : m_targetfilelist)
@@ -144,6 +150,7 @@ void MainWindow::run_diffcmd()
         }
         out << "> diff.patch";
     }
+    m_diff_file->close();
 
     if (system("Diff_utility.bat"))
     {
@@ -152,11 +159,8 @@ void MainWindow::run_diffcmd()
     else
     {
         ui->LogText->appendPlainText(QStringLiteral("Create diff.patch Successfully"));
+        m_diff_file->remove();
     }
-
-    file.close();
-    file.remove();
-
 }
 
 void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
