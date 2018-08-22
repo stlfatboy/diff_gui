@@ -13,8 +13,9 @@ MainWindow::MainWindow(QWidget *parent) :
     m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label->setText("Build." + QDate(2018,8,16).toString(Qt::ISODate));
+    ui->label->setText("Build." + QDate(2018,8,22).toString(Qt::ISODate));
     ui->pushButton_2->setDisabled(true);
+    ui->checkBox->setDisabled(true);
 }
 
 MainWindow::~MainWindow()
@@ -74,6 +75,8 @@ void MainWindow::startupjobs(char *addr)
     }
 
     ui->pushButton_2->setEnabled(true);
+    ui->checkBox->setEnabled(true);
+    ui->checkBox->setChecked(true);
 }
 
 void MainWindow::loadfilelist()
@@ -170,7 +173,9 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         if (m_targetfilelist.empty())
         {
             m_targetfilelist.push_back(m_Display_Real.at(item->text().toStdString()).c_str());
-            ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
+            ui->LogText->appendPlainText(QStringLiteral("Add    %1, Total: %2")
+                                         .arg(item->text())
+                                         .arg(m_targetfilelist.size()));
             return;
         }
 
@@ -186,7 +191,9 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
         }
 
         m_targetfilelist.push_back(m_Display_Real.at(item->text().toStdString()).c_str());
-        ui->LogText->appendPlainText(QStringLiteral("Add %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
+        ui->LogText->appendPlainText(QStringLiteral("Add    %1, Total: %2")
+                                     .arg(item->text())
+                                     .arg(m_targetfilelist.size()));
     }
     else if (item->checkState() == Qt::Unchecked)
     {
@@ -197,7 +204,9 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
             if(s == m_Display_Real.at(item->text().toStdString()).c_str())
             {
                 m_targetfilelist.removeOne(*itr);
-                ui->LogText->appendPlainText(QStringLiteral("Remove %1, Remain: %2").arg(item->text()).arg(m_targetfilelist.size()));
+                ui->LogText->appendPlainText(QStringLiteral("Remove    %1, Remain: %2")
+                                             .arg(item->text())
+                                             .arg(m_targetfilelist.size()));
                 return;
             }
             ++itr;
@@ -217,4 +226,28 @@ void MainWindow::on_pushButton_2_clicked()
     run_diffcmd();
 }
 
+void MainWindow::on_checkBox_stateChanged(int arg1)
+{
+    if (m_filelist.empty())
+    {
+        return;
+    }
 
+    int i = 0;
+    int total = m_filelist.size();
+    if (arg1 == 2)
+    {
+        for (i = 0; i < total; i++)
+        {
+            ui->Filelistwidget->item(i)->setCheckState(Qt::Checked);
+        }
+    }
+
+    if (arg1 == 0)
+    {
+        for (i = 0; i < total; i++)
+        {
+            ui->Filelistwidget->item(i)->setCheckState(Qt::Unchecked);
+        }
+    }
+}
