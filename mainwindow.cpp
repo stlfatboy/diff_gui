@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label->setText("Build." + QDate(2018,8,22).toString(Qt::ISODate));
+    ui->label->setText("Build." + QDate(2018,8,23).toString(Qt::ISODate));
     ui->pushButton_2->setDisabled(true);
     ui->checkBox->setDisabled(true);
 }
@@ -25,6 +25,12 @@ MainWindow::~MainWindow()
     {
         m_diff_file->remove();
         delete m_diff_file;
+    }
+
+    QListWidgetItem* var = nullptr;
+    foreach (var, m_ListItemVec)
+    {
+        delete var;
     }
 }
 
@@ -129,11 +135,19 @@ void MainWindow::showfilelist()
 {
     for (auto file : m_filelist)
     {
-        //TODO: store these item objects
-        //dont forget delete
-        QListWidgetItem* item = new QListWidgetItem( m_Real_Display.at(file.toStdString()).c_str(), ui->Filelistwidget);
+        std::string str = m_Real_Display.at(file.toStdString());
+        QListWidgetItem* item = new QListWidgetItem( str.c_str(), ui->Filelistwidget);
+        // Store for Future Release
+        m_ListItemVec.push_back(item);
+
         item->setCheckState(Qt::Checked);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        std::size_t pos = str.find_first_of("M");
+        if (pos != std::string::npos && pos == 0)
+        {
+            continue;
+        }
+        item->setForeground(QBrush(Qt::GlobalColor::red));
     }
 }
 

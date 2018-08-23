@@ -34,6 +34,8 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    std::vector<QListWidgetItem*> m_ListItemVec;
+
     std::unordered_map<std::string, std::string> m_Real_Display;
     std::unordered_map<std::string, std::string> m_Display_Real;
     QStringList m_filelist;
