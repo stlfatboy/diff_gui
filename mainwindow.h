@@ -11,6 +11,10 @@ namespace Ui {
 class MainWindow;
 }
 
+namespace QtAutoUpdater {
+class Updater;
+}
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -24,6 +28,8 @@ public:
     void loadfilelist();
     void showfilelist();
     void run_diffcmd();
+
+    void hasUpdate(bool hasUpdate, bool hasError);
 
 private slots:
     void on_Filelistwidget_itemChanged(QListWidgetItem *item);
@@ -45,6 +51,8 @@ private:
     QString m_diff;
 
     QFile* m_diff_file;
+
+    std::shared_ptr<QtAutoUpdater::Updater> m_updater;
 };
 
 #endif // MAINWINDOW_H

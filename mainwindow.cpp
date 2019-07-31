@@ -2,20 +2,24 @@
 #include "ui_mainwindow.h"
 
 #include <QStringListModel>
-//#include <QDebug>
+#include <updater.h>
 #include <QFile>
 #include <QTextStream>
 #include <QDate>
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    m_diff_file(nullptr)
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , m_diff_file(nullptr)
+    , m_updater(std::make_shared<QtAutoUpdater::Updater>("MaintenanceTool"))
 {
     ui->setupUi(this);
-    ui->label->setText("Build." + QDate(2018,8,23).toString(Qt::ISODate));
+    ui->label_version->setText("2019.7.1");
     ui->pushButton_2->setDisabled(true);
     ui->checkBox->setDisabled(true);
+
+    connect(m_updater.get(), &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
+    m_updater->checkForUpdates();
 }
 
 MainWindow::~MainWindow()
@@ -177,6 +181,15 @@ void MainWindow::run_diffcmd()
     {
         ui->LogText->appendPlainText(QStringLiteral("Create diff.patch Successfully"));
         m_diff_file->remove();
+    }
+}
+
+void MainWindow::hasUpdate(bool hasUpdate, bool hasError)
+{
+    if (hasUpdate)
+    {
+        ui->label_version->setText("New Version Available! Will Update on Exit");
+        m_updater->runUpdaterOnExit();
     }
 }
 
