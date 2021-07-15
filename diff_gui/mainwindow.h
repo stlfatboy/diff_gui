@@ -7,10 +7,12 @@
 #include <QDir>
 #include <unordered_map>
 #include <QMap>
+#include <QtAutoUpdaterCore>
 
 namespace Ui {
 class MainWindow;
 }
+
 class CommitDialog;
 class MainWindow : public QMainWindow
 {
@@ -24,26 +26,29 @@ public:
     void startupjobs(char* addr);
     void loadfilelist();
     void showfilelist(const QString & filter);
-    void run_diffcmd();
     void findrepo(int deepth);
 
 private slots:
+    void hasUpdate(QtAutoUpdater::Updater::State state);
+
     void on_Filelistwidget_itemChanged(QListWidgetItem *item);
 
-    void on_pushButton_2_clicked();
-
     void on_checkBox_stateChanged(int arg1);
-
-    void on_pushButton_clicked();
 
     void onCommitDialogFinished(int result);
 
     void on_comboBox_currentIndexChanged(const QString &arg1);
 
+    void on_pushButton_gen_diff_clicked();
+
+    void on_pushButton_svn_ci_clicked();
+
 private:
     Ui::MainWindow *ui;
     CommitDialog* ci_dialog;
     std::vector<QListWidgetItem*> m_ListItemVec;
+
+    QtAutoUpdater::Updater* m_updater;
 
     std::unordered_map<std::string, std::string>    m_Real_Display;
     std::unordered_map<std::string, std::string>    m_Display_Real;

@@ -2,26 +2,35 @@
 #include "ui_mainwindow.h"
 #include "commitdialog.h"
 
+#include <QMessageBox>
 #include <QStringListModel>
 #include <QFile>
 #include <QTextStream>
 #include <QDate>
 #include <QDebug>
 
+#include <QtAutoUpdaterCore/Updater>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , ci_dialog(new CommitDialog(this))
+    , m_updater(nullptr)
     , m_root_repo(true)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label->setText("Build." + QDate(2021,07,15).toString(Qt::ISODate));
-    ui->pushButton_2->setDisabled(true);
+    ui->label_version->setText("2021.7.1");
+    ui->pushButton_gen_diff->setDisabled(true);
+    ui->pushButton_svn_ci->setDisabled(true);
     ui->checkBox->setDisabled(true);
-    ui->pushButton->setDisabled(true);
     ui->comboBox->addItem("[All]", 0);
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
+
+    m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
+    connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
+    m_updater->checkForUpdates();
+
 }
 
 MainWindow::~MainWindow()
@@ -41,16 +50,31 @@ MainWindow::~MainWindow()
     }
 }
 
+void MainWindow::hasUpdate(QtAutoUpdater::Updater::State state)
+{
+    qDebug() << "Update State " << state;
+    if (state == QtAutoUpdater::Updater::State::NewUpdates)
+    {
+        QMessageBox mb;
+        mb.setText("New Version Available! Will Update on Exit");
+        mb.exec();
+        m_updater->runUpdater(QtAutoUpdater::Updater::InstallModeFlag::OnExit);
+        return;
+    }
+}
+
 void MainWindow::setaddr(char *addr)
 {
     m_addr = addr;
     m_dir.setPath(addr);
-    ui->LogText->appendPlainText(QStringLiteral("Current Path: %1").arg(m_addr));
 
     if (m_addr.length() == 0)
     {
         ui->LogText->appendPlainText(QStringLiteral("Path Empty!"));
-        return;
+    }
+    else
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Current Path: %1").arg(m_addr));
     }
 }
 
@@ -107,8 +131,8 @@ void MainWindow::startupjobs(char *addr)
         return;
     }
 
-    ui->pushButton->setEnabled(true);
-    ui->pushButton_2->setEnabled(true);
+    ui->pushButton_gen_diff->setEnabled(true);
+    ui->pushButton_svn_ci->setEnabled(true);
     ui->checkBox->setEnabled(true);
     ui->checkBox->setChecked(true);
 }
@@ -174,7 +198,7 @@ void MainWindow::showfilelist(const QString & filter)
     m_targetfilelist.clear();
     const bool show_all = filter == "[All]";
 
-    for (auto file : m_filelist)
+    for (const auto & file : m_filelist)
     {
         if (!show_all)
         {
@@ -199,8 +223,14 @@ void MainWindow::showfilelist(const QString & filter)
     }
 }
 
-void MainWindow::run_diffcmd()
+void MainWindow::on_pushButton_gen_diff_clicked()
 {
+    if(m_targetfilelist.size() == 0)
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Target File List Empty"));
+        return;
+    }
+
     int ret = 0;
     m_diff_file = new QFile("Diff_utility.bat");
     if (!m_diff_file->open(QIODevice::WriteOnly))
@@ -208,6 +238,8 @@ void MainWindow::run_diffcmd()
         return;
     }
 
+    // 区分运行时是否在svn仓库
+    // 如果不是svn仓库则需要先cd进svn目录后再执行Diff
     if (m_root_repo)
     {
         QTextStream out(m_diff_file);
@@ -288,6 +320,7 @@ void MainWindow::run_diffcmd()
 
 void MainWindow::findrepo(int deepth)
 {
+    // 递归深度优先查找svn仓库
     if (deepth > 2)
     {
         return;
@@ -360,16 +393,6 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
     }
 }
 
-void MainWindow::on_pushButton_2_clicked()
-{
-    if(m_targetfilelist.size() == 0)
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Target File List Empty"));
-        return;
-    }
-
-    run_diffcmd();
-}
 
 void MainWindow::on_checkBox_stateChanged(int arg1)
 {
@@ -397,16 +420,18 @@ void MainWindow::on_checkBox_stateChanged(int arg1)
     }
 }
 
-void MainWindow::on_pushButton_clicked()
-{
-    ci_dialog->show();
-}
 
 void MainWindow::onCommitDialogFinished(int result)
 {
     if (QDialog::Rejected == result)
     {
         ui->LogText->appendPlainText("User Canceled Commit");
+        return;
+    }
+
+    if (m_targetfilelist.empty())
+    {
+        ui->LogText->appendPlainText("No File Selected, Commit Canceled");
         return;
     }
 
@@ -424,6 +449,8 @@ void MainWindow::onCommitDialogFinished(int result)
         return;
     }
 
+    // 区分运行时是否在svn仓库
+    // 如果不是svn仓库则需要先cd进svn目录后再执行ci
     if (m_root_repo)
     {
         QTextStream out(commit_file);
@@ -433,8 +460,6 @@ void MainWindow::onCommitDialogFinished(int result)
         {
             out << target << " ";
         }
-
-        commit_file->close();
     }
     else
     {
@@ -455,11 +480,12 @@ void MainWindow::onCommitDialogFinished(int result)
         }
     }
 
-    //ret = system("Diff_Commit.bat");
+    commit_file->close();
+    ret = system("Diff_Commit.bat");
     if (ret == 0)
     {
         ui->LogText->appendPlainText(QStringLiteral("Commit Successfully"));
-        //m_diff_file->remove();
+        commit_file->remove();
     }
     else
     {
@@ -472,6 +498,7 @@ void MainWindow::onCommitDialogFinished(int result)
 
 void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
 {
+    // 找到前两级目录并应用过滤给文件
     QString fliter = arg1;
     auto pos1 = arg1.toStdString().rfind('\\');
     if (pos1 != std::string::npos)
@@ -480,8 +507,12 @@ void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
         fliter = QString::fromStdString(arg1.toStdString().substr(pos0 + 1, arg1.length() - pos0));
     }
 
-    ui->LogText->appendPlainText("Combo Select " + fliter);
-    for (auto & e : m_targetfilelist) ui->LogText->appendPlainText(e);
+    ui->LogText->appendPlainText("Select Folder " + fliter);
     showfilelist(fliter);
 }
 
+
+void MainWindow::on_pushButton_svn_ci_clicked()
+{
+    ci_dialog->show();
+}
