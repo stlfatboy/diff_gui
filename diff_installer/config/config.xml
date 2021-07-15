@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>Diff Utils</Name>
+    <Version>2021.7.1</Version>
+    <Title>Diff Utils Installer</Title>
+    <Publisher>suny-neu</Publisher>
+    <StartMenuDir>Diff Utils</StartMenuDir>
+    <TargetDir>D:/Diff_Utils</TargetDir>
+    <RemoteRepositories>
+        <Repository>
+            <Url>http://10.22.34.134/diff_utils_repo</Url>
+            <Enabled>1</Enabled>
+            <DisplayName>Release Repository</DisplayName>
+        </Repository>
+    </RemoteRepositories>
+</Installer>

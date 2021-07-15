@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\directory\background\shell\Diff_Utils Here]
+"icon"="CurrentPath\\Diff_GUI.exe"
+@="Diff_Utils Here"
+
+[HKEY_CLASSES_ROOT\directory\background\shell\Diff_Utils Here\command]
+@="CurrentPath\\Diff_GUI.exe %V"
