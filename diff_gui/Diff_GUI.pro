@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui autoupdatercore autoupdatergui
+QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -24,13 +24,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+        commitdialog.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
+        commitdialog.h \
         mainwindow.h
 
 FORMS += \
+        ci_dialog.ui \
         mainwindow.ui
 
 RESOURCES += \
