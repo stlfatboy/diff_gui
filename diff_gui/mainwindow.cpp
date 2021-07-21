@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label_version->setText("2021.7.1");
+    ui->label_version->setText("2021.7.2");
     ui->pushButton_gen_diff->setDisabled(true);
     ui->pushButton_svn_ci->setDisabled(true);
     ui->checkBox->setDisabled(true);
