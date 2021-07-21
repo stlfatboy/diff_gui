@@ -516,3 +516,16 @@ void MainWindow::on_pushButton_svn_ci_clicked()
 {
     ci_dialog->show();
 }
+
+
+void MainWindow::on_Filelistwidget_itemDoubleClicked(QListWidgetItem *item)
+{
+    const auto & filename = m_Display_Real.at(item->text().toStdString());
+
+    QProcess p;
+    const QString program = "TortoiseProc.exe";
+    QStringList args;
+    args << "/command:diff" << "/path:" + QString::fromStdString(filename);
+    p.startDetached(program, args);
+}
+
