@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDate>
+#include <QInputDialog>
 #include <QDebug>
 
 #include <QtAutoUpdaterCore/Updater>
@@ -20,9 +21,13 @@ MainWindow::MainWindow(QWidget *parent)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label_version->setText("2021.7.2");
+    ui->label_version->setText("2021.8.1");
+    ui->label_help->setText("<a href = \"http://10.22.34.133/index.php/2021/07/30/374/\"> Open Help");
+    ui->label_help->setOpenExternalLinks(true);
     ui->pushButton_gen_diff->setDisabled(true);
     ui->pushButton_svn_ci->setDisabled(true);
+    ui->pushButton_svn_up->setDisabled(true);
+    ui->pushButton_svn_re->setDisabled(true);
     ui->checkBox->setDisabled(true);
     ui->comboBox->addItem("[All]", 0);
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
@@ -80,7 +85,7 @@ void MainWindow::setaddr(char *addr)
 
 void MainWindow::startupjobs(char *addr)
 {
-    setaddr(addr);
+    if (addr) setaddr(addr);
 
     if(m_addr.length() == 0)
     {
@@ -95,7 +100,7 @@ void MainWindow::startupjobs(char *addr)
 
     // get diff status
     QFile file("Diff_utility.bat");
-    if (file.open(QIODevice::WriteOnly))
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         QTextStream out(&file);
         if (m_root_repo)
@@ -133,12 +138,19 @@ void MainWindow::startupjobs(char *addr)
 
     ui->pushButton_gen_diff->setEnabled(true);
     ui->pushButton_svn_ci->setEnabled(true);
+    ui->pushButton_svn_up->setEnabled(true);
+    ui->pushButton_svn_re->setEnabled(true);
     ui->checkBox->setEnabled(true);
     ui->checkBox->setChecked(true);
 }
 
 void MainWindow::loadfilelist()
 {
+    m_filelist.clear();
+    m_Real_Dir.clear();
+    m_Real_Display.clear();
+    m_Display_Real.clear();
+
     const int num = m_root_repo ? 0 : m_dirlist.count() - 1;
     //read list
     for (int i = 0; i <= num; i++)
@@ -233,7 +245,7 @@ void MainWindow::on_pushButton_gen_diff_clicked()
 
     int ret = 0;
     m_diff_file = new QFile("Diff_utility.bat");
-    if (!m_diff_file->open(QIODevice::WriteOnly))
+    if (!m_diff_file->open(QIODevice::WriteOnly | QIODevice::Text))
     {
         return;
     }
@@ -292,7 +304,7 @@ void MainWindow::on_pushButton_gen_diff_clicked()
 
         // Combine All Diffs
         QFile diff("diff.patch");
-        diff.open(QIODevice::WriteOnly);
+        diff.open(QIODevice::WriteOnly | QIODevice::Text);
         QTextStream diff_combine(&diff);
         for(auto & element : diff_files)
         {
@@ -444,16 +456,17 @@ void MainWindow::onCommitDialogFinished(int result)
 
     int ret = 0;
     auto commit_file = new QFile("Diff_Commit.bat");
-    if (!commit_file->open(QIODevice::WriteOnly))
+    if (!commit_file->open(QIODevice::WriteOnly | QIODevice::Text))
     {
+        ui->LogText->appendPlainText(QStringLiteral("Commit Failed, Create Diff_Commit Failed"));
         return;
     }
 
+    QTextStream out(commit_file);
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行ci
     if (m_root_repo)
     {
-        QTextStream out(commit_file);
         out << "cd " << m_addr << "\n";
         out << "svn ci -m \"" << msg << "\" ";
         for(auto & target : m_targetfilelist)
@@ -463,7 +476,6 @@ void MainWindow::onCommitDialogFinished(int result)
     }
     else
     {
-        QTextStream out(commit_file);
         int last_dir = -1;
         for(auto & target : m_targetfilelist)
         {
@@ -486,6 +498,7 @@ void MainWindow::onCommitDialogFinished(int result)
     {
         ui->LogText->appendPlainText(QStringLiteral("Commit Successfully"));
         commit_file->remove();
+        startupjobs(nullptr);
     }
     else
     {
@@ -527,5 +540,134 @@ void MainWindow::on_Filelistwidget_itemDoubleClicked(QListWidgetItem *item)
     QStringList args;
     args << "/command:diff" << "/path:" + QString::fromStdString(filename);
     p.startDetached(program, args);
+}
+
+
+void MainWindow::on_pushButton_svn_up_clicked()
+{
+    bool ok;
+    const int ver = QInputDialog::getInt(this, "SVN Update to", "Version:", 0, 0 , 2147483647, 1, &ok);
+    if (!ok)
+    {
+        return;
+    }
+
+    const auto ver_str = (ver == 0) ? "Latest" : QString::fromStdString(std::to_string(ver));
+
+    int ret = 0;
+    auto update_file = new QFile("Diff_Update.bat");
+    if (!update_file->open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Update Failed, Create Diff_Update Failed"));
+        return;
+    }
+
+    QTextStream out(update_file);
+    // 区分运行时是否在svn仓库
+    // 如果不是svn仓库则需要先cd进svn目录后再执行up
+    if (m_root_repo)
+    {
+        out << "cd " << m_addr << "\n";
+        out << "svn up";
+        if (ver != 0)
+        {
+            out << " -r " << ver_str;
+        }
+    }
+    else
+    {
+        for(auto & target : m_dirlist)
+        {
+            out << '\n';
+            out << "cd " << target << "\n";
+            out << "svn up";
+            if (ver != 0)
+            {
+                out << " -r " << ver_str;
+            }
+        }
+    }
+
+    update_file->close();
+    ret = system("Diff_Update.bat");
+    if (ret == 0)
+    {
+        ui->LogText->appendPlainText(QString("Update to %1 Successfully").arg(ver_str));
+        update_file->remove();
+        startupjobs(nullptr);
+    }
+    else
+    {
+        ui->LogText->appendPlainText(QString("Update to %1 Failed, Try Clean First").arg(ver_str));
+    }
+
+    delete update_file;
+}
+
+
+void MainWindow::on_pushButton_svn_re_clicked()
+{
+    QMessageBox msgBox;
+    msgBox.setText("SVN Revert");
+    msgBox.setInformativeText("Do you want to revert these files?");
+    msgBox.setStandardButtons(QMessageBox::Apply | QMessageBox::Cancel);
+    msgBox.setDefaultButton(QMessageBox::Cancel);
+    int ret = msgBox.exec();
+    if (QMessageBox::Cancel == ret)
+    {
+        return;
+    }
+
+    auto revert_file = new QFile("Diff_Revert.bat");
+    if (!revert_file->open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Revert Failed, Create Diff_Revert Failed"));
+        return;
+    }
+
+    QTextStream out(revert_file);
+    // 区分运行时是否在svn仓库
+    // 如果不是svn仓库则需要先cd进svn目录后再执行revert
+    if (m_root_repo)
+    {
+        out << "cd " << m_addr << "\n";
+        out << "svn revert ";
+        for(auto & target : m_targetfilelist)
+        {
+            out << target << " ";
+        }
+    }
+    else
+    {
+        int last_dir = -1;
+        for(auto & target : m_targetfilelist)
+        {
+            int current_dir = m_Real_Dir.find(target.toStdString())->second;
+            if (current_dir != last_dir)
+            {
+                last_dir = current_dir;
+                out << '\n';
+                out << "cd " << m_dirlist.at(current_dir) << "\n";
+                out << "svn revert ";
+            }
+
+            out << target << " ";
+        }
+    }
+
+    revert_file->close();
+    ret = system("Diff_Revert.bat");
+    if (ret == 0)
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Revert Successfully"));
+        revert_file->remove();
+        startupjobs(nullptr);
+    }
+    else
+    {
+        ui->LogText->appendPlainText(QStringLiteral("Revert Failed"));
+    }
+
+    delete revert_file;
 }
 

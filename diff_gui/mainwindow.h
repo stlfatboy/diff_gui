@@ -45,6 +45,10 @@ private slots:
 
     void on_Filelistwidget_itemDoubleClicked(QListWidgetItem *item);
 
+    void on_pushButton_svn_up_clicked();
+
+    void on_pushButton_svn_re_clicked();
+
 private:
     Ui::MainWindow *ui;
     CommitDialog* ci_dialog;
