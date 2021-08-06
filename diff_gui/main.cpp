@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     a.setWindowIcon(QIcon(":/icon/options.ico"));
-    w.startupjobs(argv[1]);
     w.show();
+    w.startupjobs(argv[1]);
 
     return a.exec();
 }

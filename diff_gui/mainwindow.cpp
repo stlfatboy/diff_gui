@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "commitdialog.h"
+#include "progressdialog.h"
 
 #include <QMessageBox>
 #include <QStringListModel>
@@ -16,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , ci_dialog(new CommitDialog(this))
+    , progress_dialog(new ProgressDialog(this))
     , m_updater(nullptr)
     , m_root_repo(true)
     , m_diff_file(nullptr)
@@ -34,14 +36,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
-    m_updater->checkForUpdates();
-
+    //m_updater->checkForUpdates();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
     delete ci_dialog;
+    delete progress_dialog;
     if (m_diff_file != nullptr)
     {
         m_diff_file->remove();
@@ -85,12 +87,26 @@ void MainWindow::setaddr(char *addr)
 
 void MainWindow::startupjobs(char *addr)
 {
-    if (addr) setaddr(addr);
+    if (addr)
+    {
+        setaddr(addr);
+    }
+    else
+    {
+        m_filelist.clear();
+        m_Real_Dir.clear();
+        m_Real_Display.clear();
+        m_Display_Real.clear();
+        ui->LogText->appendPlainText("Reload File List");
+    }
 
     if(m_addr.length() == 0)
     {
+        ui->LogText->appendPlainText("Current Working Directory Incorrect");
         return;
     }
+    progress_dialog->setText("Loading Changes");
+    progress_dialog->show();
 
     // Find Repos, Skip when refresh
     if (addr)
@@ -101,109 +117,105 @@ void MainWindow::startupjobs(char *addr)
         ui->comboBox->addItems(m_dirlist);
     }
 
+
     // get diff status
-    QFile file("Diff_utility.bat");
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+    bool ret = true;
+    QStringList args;
+    args << "st";
+    QByteArray result;
+    if (m_root_repo)
     {
-        QTextStream out(&file);
-        if (m_root_repo)
-        {
-            out << "svn st > filelist0";
-            file.close();
-            system("Diff_utility.bat");
-            loadfilelist();
-            file.remove();
-        }
+        ret = svn_cli_execute(m_addr, args, &result);
+        if (ret) loadfilelist(result);
         else
         {
-            int i = 0;
-            for (auto & element : m_dirlist)
+            ui->LogText->appendPlainText("Get Change State Failed");
+            progress_dialog->reset();
+            return;
+        }
+    }
+    else
+    {
+        int i = 0;
+        for (auto & dir : m_dirlist)
+        {
+            progress_dialog->setValue(i * 100 / m_dirlist.size());
+            QCoreApplication::processEvents();
+            ret = svn_cli_execute(dir, args, &result);
+            if (ret) loadfilelist(result, i++);
+            else
             {
-                out << "cd " << element << "\n";
-                out << "svn st > " << m_addr << "\\filelist" << QString::fromStdString(std::to_string(i++)) << '\n';
+                ui->LogText->appendPlainText("Get Change State Failed at" + dir);
+                progress_dialog->reset();
+                return;
             }
-
-            file.close();
-            system("Diff_utility.bat");
-            loadfilelist();
-            file.remove();
         }
     }
 
     // show file list
     showfilelist("[All]");
 
+    progress_dialog->reset();
+
+    if (!m_dirlist.empty() || m_root_repo) ui->pushButton_svn_up->setEnabled(true);
+
     if(m_targetfilelist.size() == 0)
     {
-        ui->LogText->appendPlainText(QStringLiteral("File List Empty"));
+        ui->LogText->appendPlainText("File List Empty");
         return;
     }
 
     ui->pushButton_gen_diff->setEnabled(true);
     ui->pushButton_svn_ci->setEnabled(true);
-    ui->pushButton_svn_up->setEnabled(true);
     ui->pushButton_svn_re->setEnabled(true);
     ui->checkBox->setEnabled(true);
     ui->checkBox->setChecked(true);
 }
 
-void MainWindow::loadfilelist()
+void MainWindow::loadfilelist(QByteArray & data, int workingdir)
 {
-    m_filelist.clear();
-    m_Real_Dir.clear();
-    m_Real_Display.clear();
-    m_Display_Real.clear();
-
-    const int num = m_root_repo ? 0 : m_dirlist.count() - 1;
-    //read list
-    for (int i = 0; i <= num; i++)
+    int j = 0;
+    while(-1 != (j = data.indexOf('\n', j)))
     {
-        QFile file(QString::fromStdString("filelist" + std::to_string(i)));
-        //ui->LogText->appendPlainText("Load File" + file.fileName());
-        if (file.open(QIODevice::ReadOnly))
+        QString line(data.left(j));
+        line.remove('\n');
+        line.remove('\r');
+        std::string stline = line.toStdString();
+        std::string filename;
+        QString prefix = m_root_repo ? QDir::currentPath() : m_dirlist.at(workingdir);
+        prefix += '\\';
+        // locate modified file
+        std::size_t pos = stline.find_first_of("M");
+        if (pos != std::string::npos && pos == 0)
         {
-            QTextStream in(&file);
-            while(!in.atEnd())
-            {
-                QString line = in.readLine();
-                std::string stline = line.toStdString();
-                std::string filename;
-                QString prefix = m_root_repo ? QDir::currentPath() : m_dirlist.at(i);
-                prefix += '\\';
-                // locate modified file
-                std::size_t pos = stline.find_first_of("M");
-                if (pos != std::string::npos && pos == 0)
-                {
-                    filename = prefix.toStdString() + stline.substr(8);
-                    m_filelist << filename.c_str();
-                    m_Real_Display.insert({filename, stline});
-                    m_Display_Real.insert({stline, filename});
-                    m_Real_Dir.insert({filename, i});
-                }
-
-                pos = stline.find_first_of("D");
-                if(pos != std::string::npos && pos == 0)
-                {
-                    filename = prefix.toStdString() + stline.substr(8);
-                    m_filelist << filename.c_str();
-                    m_Real_Display.insert({filename, stline});
-                    m_Display_Real.insert({stline, filename});
-                    m_Real_Dir.insert({filename, i});
-                }
-
-                pos = stline.find_first_of("A");
-                if(pos != std::string::npos && pos == 0)
-                {
-                    filename = prefix.toStdString() + stline.substr(8);
-                    m_filelist << filename.c_str();
-                    m_Real_Display.insert({filename, stline});
-                    m_Display_Real.insert({stline, filename});
-                    m_Real_Dir.insert({filename, i});
-                }
-            }
+            filename = prefix.toStdString() + stline.substr(8);
+            m_filelist << filename.c_str();
+            m_Real_Display.insert({filename, stline});
+            m_Display_Real.insert({stline, filename});
+            m_Real_Dir.insert({filename, workingdir});
         }
 
-        file.remove();
+        pos = stline.find_first_of("D");
+        if(pos != std::string::npos && pos == 0)
+        {
+            filename = prefix.toStdString() + stline.substr(8);
+            m_filelist << filename.c_str();
+            m_Real_Display.insert({filename, stline});
+            m_Display_Real.insert({stline, filename});
+            m_Real_Dir.insert({filename, workingdir});
+        }
+
+        pos = stline.find_first_of("A");
+        if(pos != std::string::npos && pos == 0)
+        {
+            filename = prefix.toStdString() + stline.substr(8);
+            m_filelist << filename.c_str();
+            m_Real_Display.insert({filename, stline});
+            m_Display_Real.insert({stline, filename});
+            m_Real_Dir.insert({filename, workingdir});
+        }
+
+        j++;
     }
 }
 
@@ -457,58 +469,69 @@ void MainWindow::onCommitDialogFinished(int result)
         return;
     }
 
-    int ret = 0;
-    auto commit_file = new QFile("Diff_Commit.bat");
-    if (!commit_file->open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Commit Failed, Create Diff_Commit Failed"));
-        return;
-    }
+    progress_dialog->setText("Committing");
+    progress_dialog->show();
 
-    QTextStream out(commit_file);
+    bool ret = true;
+    QStringList args;
+
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行ci
     if (m_root_repo)
     {
-        out << "cd " << m_addr << "\n";
-        out << "svn ci -m \"" << msg << "\" ";
+        args << "ci" << "-m" << msg;
         for(auto & target : m_targetfilelist)
         {
-            out << target << " ";
+            args << target;
         }
+
+        ret = svn_cli_execute(m_addr, args);
     }
     else
     {
+        int count = 0;
         int last_dir = -1;
         for(auto & target : m_targetfilelist)
         {
             int current_dir = m_Real_Dir.find(target.toStdString())->second;
             if (current_dir != last_dir)
             {
+                // Run if dir changed
+                if (last_dir != -1)
+                {
+                    progress_dialog->setValue(count * 100 / m_targetfilelist.size());
+                    QCoreApplication::processEvents();
+                    ret = svn_cli_execute(m_dirlist.at(last_dir), args);
+                    if (!ret)
+                    {
+                        ui->LogText->appendPlainText("Separate Commit Abort");
+                        return;
+                    }
+                    args.clear();
+                }
+
                 last_dir = current_dir;
-                out << '\n';
-                out << "cd " << m_dirlist.at(current_dir) << "\n";
-                out << "svn ci -m \"" << msg << "\" ";
+                args << "ci" << "-m" << msg;
             }
 
-            out << target << " ";
+            args << target;
+            count++;
+        }
+
+        progress_dialog->setValue(count * 100 / m_dirlist.size());
+        QCoreApplication::processEvents();
+        ret = svn_cli_execute(m_dirlist.at(last_dir), args);
+        if (!ret)
+        {
+            ui->LogText->appendPlainText("Separate Commit Abort");
+            return;
         }
     }
 
-    commit_file->close();
-    ret = system("Diff_Commit.bat");
-    if (ret == 0)
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Commit Successfully"));
-        commit_file->remove();
-        startupjobs(nullptr);
-    }
-    else
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Commit Failed"));
-    }
+    if (ret) ui->LogText->appendPlainText(QStringLiteral("Commit Finished"));
+    startupjobs(nullptr);
 
-    delete commit_file;
+    progress_dialog->reset();
 }
 
 
@@ -557,54 +580,45 @@ void MainWindow::on_pushButton_svn_up_clicked()
 
     const auto ver_str = (ver == 0) ? "Latest" : QString::fromStdString(std::to_string(ver));
 
-    int ret = 0;
-    auto update_file = new QFile("Diff_Update.bat");
-    if (!update_file->open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Update Failed, Create Diff_Update Failed"));
-        return;
-    }
+    progress_dialog->setText("Updating");
+    progress_dialog->show();
 
-    QTextStream out(update_file);
+    bool ret = true;
+    QStringList args;
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行up
     if (m_root_repo)
     {
-        out << "cd " << m_addr << "\n";
-        out << "svn up";
+        args << "up";
         if (ver != 0)
         {
-            out << " -r " << ver_str;
+            args << "-r" << ver_str;
         }
+
+        ret = svn_cli_execute(m_addr, args);
     }
     else
     {
+        int count = 0;
         for(auto & target : m_dirlist)
         {
-            out << '\n';
-            out << "cd " << target << "\n";
-            out << "svn up";
+            args << "up";
             if (ver != 0)
             {
-                out << " -r " << ver_str;
+                args << "-r" << ver_str;
             }
+
+            progress_dialog->setValue(++count * 100 / m_dirlist.size());
+            QCoreApplication::processEvents();
+            ret = svn_cli_execute(target, args);
+            args.clear();
         }
     }
 
-    update_file->close();
-    ret = system("Diff_Update.bat");
-    if (ret == 0)
-    {
-        ui->LogText->appendPlainText(QString("Update to %1 Successfully").arg(ver_str));
-        update_file->remove();
-        startupjobs(nullptr);
-    }
-    else
-    {
-        ui->LogText->appendPlainText(QString("Update to %1 Failed, Try Clean First").arg(ver_str));
-    }
+    ui->LogText->appendPlainText(QString("Update to %1 Finished").arg(ver_str));
+    startupjobs(nullptr);
 
-    delete update_file;
+    progress_dialog->reset();
 }
 
 
@@ -621,56 +635,79 @@ void MainWindow::on_pushButton_svn_re_clicked()
         return;
     }
 
-    auto revert_file = new QFile("Diff_Revert.bat");
-    if (!revert_file->open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        ui->LogText->appendPlainText(QStringLiteral("Revert Failed, Create Diff_Revert Failed"));
-        return;
-    }
+    progress_dialog->setText("Reverting");
+    progress_dialog->show();
 
-    QTextStream out(revert_file);
+    bool result = true;
+    QStringList args;
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行revert
     if (m_root_repo)
     {
-        out << "cd " << m_addr << "\n";
-        out << "svn revert ";
+        args << "revert";
         for(auto & target : m_targetfilelist)
         {
-            out << target << " ";
+            args << target;
         }
+        result = svn_cli_execute(m_addr, args);
     }
     else
     {
+        int count = 0;
         int last_dir = -1;
         for(auto & target : m_targetfilelist)
         {
             int current_dir = m_Real_Dir.find(target.toStdString())->second;
             if (current_dir != last_dir)
             {
+                if (last_dir != -1)
+                {
+                    progress_dialog->setValue(count *100 / m_targetfilelist.size());
+                    QCoreApplication::processEvents();
+                    result = svn_cli_execute(m_dirlist.at(last_dir), args);
+                    args.clear();
+                }
                 last_dir = current_dir;
-                out << '\n';
-                out << "cd " << m_dirlist.at(current_dir) << "\n";
-                out << "svn revert ";
+                args << "revert";
             }
 
-            out << target << " ";
+            args << target;
+            count++;
         }
+
+        progress_dialog->setValue(count *100 / m_targetfilelist.size());
+        QCoreApplication::processEvents();
+        result = svn_cli_execute(m_dirlist.at(last_dir), args);
     }
 
-    revert_file->close();
-    ret = system("Diff_Revert.bat");
-    if (ret == 0)
+    if (result)
     {
-        ui->LogText->appendPlainText(QStringLiteral("Revert Successfully"));
-        revert_file->remove();
-        startupjobs(nullptr);
+        ui->LogText->appendPlainText("Revert Successfully");
     }
     else
     {
-        ui->LogText->appendPlainText(QStringLiteral("Revert Failed"));
+        ui->LogText->appendPlainText("Revert Failed");
     }
 
-    delete revert_file;
+    startupjobs(nullptr);
+
+    progress_dialog->reset();
+}
+
+
+bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, QByteArray *result)
+{
+    QProcess p;
+    p.setWorkingDirectory(addr);
+    QString log = QString("(%1):svn ").arg(addr);
+    for (auto & arg : args) log += " " + arg;
+    ui->LogText->appendPlainText(log);
+    p.start("svn", args);
+    p.waitForFinished();
+
+    if (result) *result = p.readAll();
+    else ui->LogText->appendPlainText(p.readAll());
+
+    return p.exitCode() == 0;
 }
 

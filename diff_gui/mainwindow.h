@@ -14,6 +14,7 @@ class MainWindow;
 }
 
 class CommitDialog;
+class ProgressDialog;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -24,7 +25,7 @@ public:
 
     void setaddr(char *addr);
     void startupjobs(char* addr);
-    void loadfilelist();
+    void loadfilelist(QByteArray & data, int workingdir = -1);
     void showfilelist(const QString & filter);
     void findrepo(int deepth);
 
@@ -50,9 +51,13 @@ private slots:
     void on_pushButton_svn_re_clicked();
 
 private:
+
+    bool svn_cli_execute(const QString &addr, const QStringList & args,  QByteArray *result = nullptr);
+
     Ui::MainWindow *ui;
     CommitDialog* ci_dialog;
     std::vector<QListWidgetItem*> m_ListItemVec;
+    ProgressDialog* progress_dialog;
 
     QtAutoUpdater::Updater* m_updater;
 
