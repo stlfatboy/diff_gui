@@ -92,11 +92,14 @@ void MainWindow::startupjobs(char *addr)
         return;
     }
 
-    // Find Repos
-    m_root_repo = m_dir.exists(".svn");
-    if (!m_root_repo) findrepo(0);
-    else ui->LogText->appendPlainText("Root Repo");
-    ui->comboBox->addItems(m_dirlist);
+    // Find Repos, Skip when refresh
+    if (addr)
+    {
+        m_root_repo = m_dir.exists(".svn");
+        if (!m_root_repo) findrepo(0);
+        else ui->LogText->appendPlainText("Root Repo");
+        ui->comboBox->addItems(m_dirlist);
+    }
 
     // get diff status
     QFile file("Diff_utility.bat");
