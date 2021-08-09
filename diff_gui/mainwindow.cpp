@@ -190,7 +190,7 @@ void MainWindow::checkVersionConsistency()
         if (svn_cli_execute(element, args, &temp_result))
         {
             const int temp_revision = temp_result.toInt();
-            if (temp_revision != m_target_revision) consist = false;
+            if (m_target_revision != 0 && temp_revision != m_target_revision) consist = false;
             if (temp_revision > m_target_revision)
             {
                 target_dir = element;
