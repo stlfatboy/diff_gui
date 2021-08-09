@@ -25,6 +25,7 @@ public:
 
     void setaddr(char *addr);
     void startupjobs(char* addr);
+    void checkVersionConsistency();
     void loadfilelist(QByteArray & data, int workingdir = -1);
     void showfilelist(const QString & filter);
     void findrepo(int deepth);
@@ -54,6 +55,8 @@ private:
 
     bool svn_cli_execute(const QString &addr, const QStringList & args,  QByteArray *result = nullptr);
 
+    void update_repo(int revision);
+
     Ui::MainWindow *ui;
     CommitDialog* ci_dialog;
     std::vector<QListWidgetItem*> m_ListItemVec;
@@ -70,6 +73,7 @@ private:
     QStringList m_dirlist;
     QStringList m_filelist;
     QStringList m_targetfilelist;
+    int m_target_revision;
 
     QString m_addr;
     QString m_diff;

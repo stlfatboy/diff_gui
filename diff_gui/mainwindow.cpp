@@ -20,10 +20,11 @@ MainWindow::MainWindow(QWidget *parent)
     , progress_dialog(new ProgressDialog(this))
     , m_updater(nullptr)
     , m_root_repo(true)
+    , m_target_revision(0)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label_version->setText("2021.8.1");
+    ui->label_version->setText("2021.8.2");
     ui->label_help->setText("<a href = \"http://10.22.34.133/index.php/2021/07/30/374/\"> Open Help");
     ui->label_help->setOpenExternalLinks(true);
     ui->pushButton_gen_diff->setDisabled(true);
@@ -171,6 +172,47 @@ void MainWindow::startupjobs(char *addr)
     ui->checkBox->setEnabled(true);
     ui->checkBox->setChecked(true);
 }
+
+
+void MainWindow::checkVersionConsistency()
+{
+    if (m_dirlist.empty() || m_root_repo) return;
+
+    QStringList args;
+    args << "info" << "--show-item" << "revision";
+    QStringList revision;
+
+    QString target_dir;
+    bool consist = true;
+    for (auto & element : m_dirlist)
+    {
+        QByteArray temp_result;
+        if (svn_cli_execute(element, args, &temp_result))
+        {
+            const int temp_revision = temp_result.toInt();
+            if (temp_revision != m_target_revision) consist = false;
+            if (temp_revision > m_target_revision)
+            {
+                target_dir = element;
+                m_target_revision = temp_revision;
+            }
+        }
+    }
+
+    if (!consist)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("Your sub-directories' revision are not the same.");
+        msgBox.setInformativeText(QString("Do you want to update them to %1(sync to %2)?").arg(m_target_revision).arg(target_dir));
+        msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
+        msgBox.setDefaultButton(QMessageBox::Yes);
+        if (QMessageBox::Yes == msgBox.exec())
+        {
+            update_repo(m_target_revision);
+        }
+    }
+}
+
 
 void MainWindow::loadfilelist(QByteArray & data, int workingdir)
 {
@@ -468,6 +510,7 @@ void MainWindow::onCommitDialogFinished(int result)
         ui->LogText->appendPlainText("Empty Commit Message, Commit Canceled");
         return;
     }
+    msg.replace('\n', '\r');
 
     progress_dialog->setText("Committing");
     progress_dialog->show();
@@ -572,53 +615,13 @@ void MainWindow::on_Filelistwidget_itemDoubleClicked(QListWidgetItem *item)
 void MainWindow::on_pushButton_svn_up_clicked()
 {
     bool ok;
-    const int ver = QInputDialog::getInt(this, "SVN Update to", "Version:", 0, 0 , 2147483647, 1, &ok);
+    const int ver = QInputDialog::getInt(this, "SVN Update to", "Version:", m_target_revision, 0 , 2147483647, 1, &ok);
     if (!ok)
     {
         return;
     }
 
-    const auto ver_str = (ver == 0) ? "Latest" : QString::fromStdString(std::to_string(ver));
-
-    progress_dialog->setText("Updating");
-    progress_dialog->show();
-
-    bool ret = true;
-    QStringList args;
-    // 区分运行时是否在svn仓库
-    // 如果不是svn仓库则需要先cd进svn目录后再执行up
-    if (m_root_repo)
-    {
-        args << "up";
-        if (ver != 0)
-        {
-            args << "-r" << ver_str;
-        }
-
-        ret = svn_cli_execute(m_addr, args);
-    }
-    else
-    {
-        int count = 0;
-        for(auto & target : m_dirlist)
-        {
-            args << "up";
-            if (ver != 0)
-            {
-                args << "-r" << ver_str;
-            }
-
-            progress_dialog->setValue(++count * 100 / m_dirlist.size());
-            QCoreApplication::processEvents();
-            ret = svn_cli_execute(target, args);
-            args.clear();
-        }
-    }
-
-    ui->LogText->appendPlainText(QString("Update to %1 Finished").arg(ver_str));
-    startupjobs(nullptr);
-
-    progress_dialog->reset();
+    update_repo(ver);
 }
 
 
@@ -699,7 +702,7 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
 {
     QProcess p;
     p.setWorkingDirectory(addr);
-    QString log = QString("(%1):svn ").arg(addr);
+    QString log = QString("(%1):svn").arg(addr);
     for (auto & arg : args) log += " " + arg;
     ui->LogText->appendPlainText(log);
     p.start("svn", args);
@@ -709,5 +712,49 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
     else ui->LogText->appendPlainText(p.readAll());
 
     return p.exitCode() == 0;
+}
+
+
+void MainWindow::update_repo(int revision)
+{
+    progress_dialog->setText("Updating");
+    progress_dialog->show();
+
+    bool ret = true;
+    QStringList args;
+    // 区分运行时是否在svn仓库
+    // 如果不是svn仓库则需要先cd进svn目录后再执行up
+    if (m_root_repo)
+    {
+        args << "up";
+        if (revision != 0)
+        {
+            args << "-r" << QString::number(revision);
+        }
+
+        ret = svn_cli_execute(m_addr, args);
+    }
+    else
+    {
+        int count = 0;
+        for(auto & target : m_dirlist)
+        {
+            args << "up";
+            if (revision != 0)
+            {
+                args << "-r" << QString::number(revision);
+            }
+
+            progress_dialog->setValue(++count * 100 / m_dirlist.size());
+            QCoreApplication::processEvents();
+            ret = svn_cli_execute(target, args);
+            args.clear();
+        }
+    }
+
+    ui->LogText->appendPlainText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
+    startupjobs(nullptr);
+
+    progress_dialog->reset();
 }
 

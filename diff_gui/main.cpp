@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
     a.setWindowIcon(QIcon(":/icon/options.ico"));
     w.show();
     w.startupjobs(argv[1]);
+    w.checkVersionConsistency();
 
     return a.exec();
 }
