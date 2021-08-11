@@ -257,7 +257,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             m_Real_Dir.insert({filename, workingdir});
         }
 
-        j++;
+        data.remove(0, ++j);
+        j = 0;
     }
 }
 
