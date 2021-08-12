@@ -226,7 +226,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         std::string filename;
         QString prefix = m_root_repo ? QDir::currentPath() : m_dirlist.at(workingdir);
         prefix += '\\';
-        // locate modified file
+
+        // Modified
         std::size_t pos = stline.find_first_of("M");
         if (pos != std::string::npos && pos == 0)
         {
@@ -237,6 +238,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             m_Real_Dir.insert({filename, workingdir});
         }
 
+        // Delete
         pos = stline.find_first_of("D");
         if(pos != std::string::npos && pos == 0)
         {
@@ -247,6 +249,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             m_Real_Dir.insert({filename, workingdir});
         }
 
+        // Added
         pos = stline.find_first_of("A");
         if(pos != std::string::npos && pos == 0)
         {
@@ -255,6 +258,22 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             m_Real_Display.insert({filename, stline});
             m_Display_Real.insert({stline, filename});
             m_Real_Dir.insert({filename, workingdir});
+        }
+
+        // Conflict
+        pos = stline.find_first_of("C");
+        if (pos != std::string::npos && pos == 0)
+        {
+            QMessageBox msgBox;
+            msgBox.setText(QString("Conflict Detected(%1)").arg(QString::fromStdString(stline.substr(8))));
+            msgBox.setInformativeText("Do you want to go to repo and sovle ?");
+            msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
+            msgBox.setDefaultButton(QMessageBox::Yes);
+            if (QMessageBox::Yes == msgBox.exec())
+            {
+                std::string cmd = "TortoiseProc.exe /command:resolve /path:" + m_dirlist[workingdir].toStdString();
+                system(cmd.c_str());
+            }
         }
 
         data.remove(0, ++j);
