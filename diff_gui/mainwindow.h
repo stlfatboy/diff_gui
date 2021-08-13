@@ -9,6 +9,13 @@
 #include <QMap>
 #include <QtAutoUpdaterCore>
 
+
+enum TortoiseSVNCMD
+{
+    resolve = 0,
+    repostatus
+};
+
 namespace Ui {
 class MainWindow;
 }
@@ -54,6 +61,8 @@ private slots:
 private:
 
     bool svn_cli_execute(const QString &addr, const QStringList & args,  QByteArray *result = nullptr);
+
+    bool svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend = 0);
 
     void update_repo(int revision);
 

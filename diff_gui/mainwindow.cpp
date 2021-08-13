@@ -265,14 +265,28 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         if (pos != std::string::npos && pos == 0)
         {
             QMessageBox msgBox;
-            msgBox.setText(QString("Conflict Detected(%1)").arg(QString::fromStdString(stline.substr(8))));
-            msgBox.setInformativeText("Do you want to go to repo and sovle ?");
+            msgBox.setText(QString("Conflict Detected at repo: %1").arg(m_dirlist[workingdir]));
+            msgBox.setInformativeText("Do you want to go to repo and resolve it?");
             msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
             msgBox.setDefaultButton(QMessageBox::Yes);
             if (QMessageBox::Yes == msgBox.exec())
             {
-                std::string cmd = "TortoiseProc.exe /command:resolve /path:" + m_dirlist[workingdir].toStdString();
-                system(cmd.c_str());
+                svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
+            }
+        }
+
+        // Missing
+        pos = stline.find_first_of("!");
+        if (pos != std::string::npos && pos == 0)
+        {
+            QMessageBox msgBox;
+            msgBox.setText(QString("Missing Detected at repo: %1").arg(m_dirlist[workingdir]));
+            msgBox.setInformativeText("Do you want to go to repo and check it?");
+            msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
+            msgBox.setDefaultButton(QMessageBox::Yes);
+            if (QMessageBox::Yes == msgBox.exec())
+            {
+                svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
             }
         }
 
@@ -730,6 +744,39 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
 
     if (result) *result = p.readAll();
     else ui->LogText->appendPlainText(p.readAll());
+
+    return p.exitCode() == 0;
+}
+
+
+bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend)
+{
+    QProcess p;
+    QStringList args;
+    switch (cmd)
+    {
+    case TortoiseSVNCMD::resolve:
+    {
+        args << "/command:resolve";
+        break;
+    }
+    case TortoiseSVNCMD::repostatus:
+    {
+        args << "/command:repostatus";
+        break;
+    }
+    defualt:
+    {
+        break;
+    }
+    }
+    args << "/path:" + addr;
+    args << "/closeonend:" + QString::number(closeonend);
+    QString log = QString("(%1):tortoisesvn").arg(addr);
+    for (auto & arg : args) log += " " + arg;
+    ui->LogText->appendPlainText(log);
+    p.start("TortoiseProc.exe", args);
+    p.waitForFinished();
 
     return p.exitCode() == 0;
 }
