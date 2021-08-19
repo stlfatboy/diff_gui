@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->checkBox->setDisabled(true);
     ui->comboBox->addItem("[All]", 0);
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
+    connect(this, &MainWindow::inner_startupjobs, this, &MainWindow::startupjobs);
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
@@ -272,6 +273,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (QMessageBox::Yes == msgBox.exec())
             {
                 svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
+                emit inner_startupjobs(nullptr);
+                return;
             }
         }
 
@@ -287,6 +290,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (QMessageBox::Yes == msgBox.exec())
             {
                 svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
+                emit inner_startupjobs(nullptr);
+                return;
             }
         }
 

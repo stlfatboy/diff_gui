@@ -30,6 +30,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
     void setaddr(char *addr);
     void startupjobs(char* addr);
     void checkVersionConsistency();
@@ -57,6 +58,10 @@ private slots:
     void on_pushButton_svn_up_clicked();
 
     void on_pushButton_svn_re_clicked();
+
+signals:
+
+    void inner_startupjobs(char* addr);
 
 private:
 
