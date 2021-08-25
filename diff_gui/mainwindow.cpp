@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->checkBox->setDisabled(true);
     ui->comboBox->addItem("[All]", 0);
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
-    connect(this, &MainWindow::inner_startupjobs, this, &MainWindow::startupjobs);
+    connect(this, &MainWindow::inner_startupjobs, this, &MainWindow::startupjobs, Qt::QueuedConnection);
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
@@ -155,7 +155,7 @@ void MainWindow::startupjobs(char *addr)
     }
 
     // show file list
-    showfilelist("[All]");
+    showfilelist("[All]", addr ? false : true);
 
     progress_dialog->reset();
 
@@ -300,7 +300,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
     }
 }
 
-void MainWindow::showfilelist(const QString & filter)
+void MainWindow::showfilelist(const QString & filter, bool isRefresh)
 {
     ui->Filelistwidget->clear();
     m_targetfilelist.clear();
@@ -320,7 +320,7 @@ void MainWindow::showfilelist(const QString & filter)
         // Store for Future Release
         m_ListItemVec.push_back(item);
 
-        item->setCheckState(Qt::Checked);
+        item->setCheckState(isRefresh ? Qt::Unchecked : Qt::Checked);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         std::size_t pos = str.find_first_of("M");
         if (pos != std::string::npos && pos == 0)

@@ -35,7 +35,7 @@ public slots:
     void startupjobs(char* addr);
     void checkVersionConsistency();
     void loadfilelist(QByteArray & data, int workingdir = -1);
-    void showfilelist(const QString & filter);
+    void showfilelist(const QString & filter, bool isRefresh = false);
     void findrepo(int deepth);
 
 private slots:
