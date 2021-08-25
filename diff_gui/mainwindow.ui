@@ -37,36 +37,14 @@
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
     </property>
-    <item row="5" column="0">
-     <widget class="QCheckBox" name="checkBox">
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_3">
       <property name="text">
-       <string>Select All</string>
-      </property>
-      <property name="tristate">
-       <bool>false</bool>
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Log&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
-    <item row="4" column="0">
-     <widget class="QListWidget" name="Filelistwidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>255</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>350</height>
-       </size>
-      </property>
-      <property name="resizeMode">
-       <enum>QListView::Fixed</enum>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="0">
+    <item row="11" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QPushButton" name="pushButton_gen_diff">
@@ -91,43 +69,7 @@
       </item>
      </layout>
     </item>
-    <item row="14" column="0">
-     <widget class="QPlainTextEdit" name="LogText">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>10</height>
-       </size>
-      </property>
-      <property name="baseSize">
-       <size>
-        <width>0</width>
-        <height>30</height>
-       </size>
-      </property>
-     </widget>
-    </item>
     <item row="12" column="0">
-     <widget class="QLabel" name="label_3">
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Log&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;File List&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-     </widget>
-    </item>
-    <item row="10" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
        <widget class="QPushButton" name="pushButton_svn_up">
@@ -138,27 +80,7 @@
       </item>
      </layout>
     </item>
-    <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <widget class="QLabel" name="label_4">
-        <property name="maximumSize">
-         <size>
-          <width>60</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;Folder:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="comboBox"/>
-      </item>
-     </layout>
-    </item>
-    <item row="15" column="0">
+    <item row="17" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
        <widget class="QLabel" name="label_help">
@@ -188,13 +110,102 @@
       </item>
      </layout>
     </item>
+    <item row="4" column="0">
+     <widget class="QListWidget" name="Filelistwidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>255</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>350</height>
+       </size>
+      </property>
+      <property name="resizeMode">
+       <enum>QListView::Fixed</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0">
+     <widget class="QPlainTextEdit" name="LogText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>10</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>0</width>
+        <height>30</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;File List&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="maximumSize">
+         <size>
+          <width>60</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;Folder:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox"/>
+      </item>
+     </layout>
+    </item>
+    <item row="5" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <item>
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>Select All</string>
+        </property>
+        <property name="tristate">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_refresh">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
    </layout>
-   <zorder>Filelistwidget</zorder>
-   <zorder>LogText</zorder>
-   <zorder>label_3</zorder>
-   <zorder>label_2</zorder>
-   <zorder>checkBox</zorder>
-   <zorder>horizontalLayoutWidget</zorder>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->pushButton_svn_re->setDisabled(true);
     ui->checkBox->setDisabled(true);
     ui->comboBox->addItem("[All]", 0);
+
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
     connect(this, &MainWindow::inner_startupjobs, this, &MainWindow::startupjobs, Qt::QueuedConnection);
 
@@ -828,5 +829,11 @@ void MainWindow::update_repo(int revision)
     startupjobs(nullptr);
 
     progress_dialog->reset();
+}
+
+
+void MainWindow::on_pushButton_refresh_clicked()
+{
+    startupjobs(nullptr);
 }
 

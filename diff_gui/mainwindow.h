@@ -59,6 +59,8 @@ private slots:
 
     void on_pushButton_svn_re_clicked();
 
+    void on_pushButton_refresh_clicked();
+
 signals:
 
     void inner_startupjobs(char* addr);
