@@ -156,7 +156,7 @@ void MainWindow::startupjobs(char *addr)
     }
 
     // show file list
-    showfilelist("[All]", addr ? false : true);
+    showfilelist("[All]");
 
     progress_dialog->reset();
 
@@ -164,7 +164,7 @@ void MainWindow::startupjobs(char *addr)
 
     if(m_targetfilelist.size() == 0)
     {
-        ui->LogText->appendPlainText("File List Empty");
+        ui->LogText->appendPlainText("No Selected File(s)");
         return;
     }
 
@@ -301,7 +301,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
     }
 }
 
-void MainWindow::showfilelist(const QString & filter, bool isRefresh)
+void MainWindow::showfilelist(const QString & filter)
 {
     ui->Filelistwidget->clear();
     m_targetfilelist.clear();
@@ -320,8 +320,7 @@ void MainWindow::showfilelist(const QString & filter, bool isRefresh)
         QListWidgetItem* item = new QListWidgetItem( str.c_str(), ui->Filelistwidget);
         // Store for Future Release
         m_ListItemVec.push_back(item);
-
-        item->setCheckState(isRefresh ? Qt::Unchecked : Qt::Checked);
+        item->setCheckState(m_unchecked_files.contains(QString::fromStdString(str)) ? Qt::Unchecked : Qt::Checked);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         std::size_t pos = str.find_first_of("M");
         if (pos != std::string::npos && pos == 0)
@@ -457,6 +456,9 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
 {
     if (item->checkState() == Qt::Checked)
     {
+        if (m_unchecked_files.contains(item->text())) m_unchecked_files.removeAll(item->text());
+        //qDebug() << "itemChanged: " << m_unchecked_files;
+
         if (m_targetfilelist.empty())
         {
             m_targetfilelist.push_back(m_Display_Real.at(item->text().toStdString()).c_str());
@@ -484,6 +486,9 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
     }
     else if (item->checkState() == Qt::Unchecked)
     {
+        if (!m_unchecked_files.contains(item->text())) m_unchecked_files.append(item->text());
+        //qDebug() << "itemChanged: " << m_unchecked_files;
+
         auto itr = m_targetfilelist.begin();
         while (itr != m_targetfilelist.end())
         {
@@ -512,19 +517,29 @@ void MainWindow::on_checkBox_stateChanged(int arg1)
 
     int i = 0;
     int total = m_filelist.size();
-    if (arg1 == 2)
+    if (arg1 == Qt::Checked)
     {
         for (i = 0; i < total; i++)
         {
             ui->Filelistwidget->item(i)->setCheckState(Qt::Checked);
+            if (m_unchecked_files.contains(ui->Filelistwidget->item(i)->text()))
+            {
+                m_unchecked_files.removeAll(ui->Filelistwidget->item(i)->text());
+                // qDebug() << "state Checked: " << m_unchecked_files;
+            }
         }
     }
 
-    if (arg1 == 0)
+    if (arg1 == Qt::Unchecked)
     {
         for (i = 0; i < total; i++)
         {
             ui->Filelistwidget->item(i)->setCheckState(Qt::Unchecked);
+            if (!m_unchecked_files.contains(ui->Filelistwidget->item(i)->text()))
+            {
+                m_unchecked_files.append(ui->Filelistwidget->item(i)->text());
+                // qDebug() << "state Unchecked: " << m_unchecked_files;
+            }
         }
     }
 }
