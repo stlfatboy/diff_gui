@@ -35,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox->addItem("[All]", 0);
 
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
-    connect(this, &MainWindow::inner_startupjobs, this, &MainWindow::startupjobs, Qt::QueuedConnection);
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
@@ -90,89 +89,93 @@ void MainWindow::setaddr(char *addr)
 
 void MainWindow::startupjobs(char *addr)
 {
-    if (addr)
-    {
-        setaddr(addr);
-    }
-    else
-    {
-        m_filelist.clear();
-        m_Real_Dir.clear();
-        m_Real_Display.clear();
-        m_Display_Real.clear();
-        ui->LogText->appendPlainText("Reload File List");
-    }
+    do{
+        if (m_inner_refresh) m_inner_refresh = false;
 
-    if(m_addr.length() == 0)
-    {
-        ui->LogText->appendPlainText("Current Working Directory Incorrect");
-        return;
-    }
-    progress_dialog->setText("Loading Changes");
-    progress_dialog->show();
-
-    // Find Repos, Skip when refresh
-    if (addr)
-    {
-        m_root_repo = m_dir.exists(".svn");
-        if (!m_root_repo) findrepo(0);
-        else ui->LogText->appendPlainText("Root Repo");
-        ui->comboBox->addItems(m_dirlist);
-    }
-
-
-    // get diff status
-    bool ret = true;
-    QStringList args;
-    args << "st";
-    QByteArray result;
-    if (m_root_repo)
-    {
-        ret = svn_cli_execute(m_addr, args, &result);
-        if (ret) loadfilelist(result);
+        if (addr)
+        {
+            setaddr(addr);
+        }
         else
         {
-            ui->LogText->appendPlainText("Get Change State Failed");
-            progress_dialog->reset();
+            m_filelist.clear();
+            m_Real_Dir.clear();
+            m_Real_Display.clear();
+            m_Display_Real.clear();
+            ui->LogText->appendPlainText("Reload File List");
+        }
+
+        if(m_addr.length() == 0)
+        {
+            ui->LogText->appendPlainText("Current Working Directory Incorrect");
             return;
         }
-    }
-    else
-    {
-        int i = 0;
-        for (auto & dir : m_dirlist)
+        progress_dialog->setText("Loading Changes");
+        progress_dialog->show();
+
+        // Find Repos, Skip when refresh
+        if (addr)
         {
-            progress_dialog->setValue(i * 100 / m_dirlist.size());
-            QCoreApplication::processEvents();
-            ret = svn_cli_execute(dir, args, &result);
-            if (ret) loadfilelist(result, i++);
+            m_root_repo = m_dir.exists(".svn");
+            if (!m_root_repo) findrepo(0);
+            else ui->LogText->appendPlainText("Root Repo");
+            ui->comboBox->addItems(m_dirlist);
+        }
+
+
+        // get diff status
+        bool ret = true;
+        QStringList args;
+        args << "st";
+        QByteArray result;
+        if (m_root_repo)
+        {
+            ret = svn_cli_execute(m_addr, args, &result);
+            if (ret) loadfilelist(result);
             else
             {
-                ui->LogText->appendPlainText("Get Change State Failed at" + dir);
+                ui->LogText->appendPlainText("Get Change State Failed");
                 progress_dialog->reset();
                 return;
             }
         }
-    }
+        else
+        {
+            int i = 0;
+            for (auto & dir : m_dirlist)
+            {
+                progress_dialog->setValue(i * 100 / m_dirlist.size());
+                QCoreApplication::processEvents();
+                ret = svn_cli_execute(dir, args, &result);
+                if (ret) loadfilelist(result, i++);
+                else
+                {
+                    ui->LogText->appendPlainText("Get Change State Failed at" + dir);
+                    progress_dialog->reset();
+                    return;
+                }
+            }
+        }
 
-    // show file list
-    showfilelist("[All]");
+        // show file list
+        showfilelist("[All]");
 
-    progress_dialog->reset();
+        progress_dialog->reset();
 
-    if (!m_dirlist.empty() || m_root_repo) ui->pushButton_svn_up->setEnabled(true);
+        if (!m_dirlist.empty() || m_root_repo) ui->pushButton_svn_up->setEnabled(true);
 
-    if(m_targetfilelist.size() == 0)
-    {
-        ui->LogText->appendPlainText("No Selected File(s)");
-        return;
-    }
+        if(m_targetfilelist.size() == 0)
+        {
+            ui->LogText->appendPlainText("No Selected File(s)");
+            return;
+        }
 
-    ui->pushButton_gen_diff->setEnabled(true);
-    ui->pushButton_svn_ci->setEnabled(true);
-    ui->pushButton_svn_re->setEnabled(true);
-    ui->checkBox->setEnabled(true);
-    ui->checkBox->setChecked(true);
+        ui->pushButton_gen_diff->setEnabled(true);
+        ui->pushButton_svn_ci->setEnabled(true);
+        ui->pushButton_svn_re->setEnabled(true);
+        ui->checkBox->setEnabled(true);
+        ui->checkBox->setChecked(true);
+    }while(m_inner_refresh);
 }
 
 
@@ -274,7 +277,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (QMessageBox::Yes == msgBox.exec())
             {
                 svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
-                emit inner_startupjobs(nullptr);
+                m_inner_refresh = true;
                 return;
             }
         }
@@ -291,7 +294,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (QMessageBox::Yes == msgBox.exec())
             {
                 svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
-                emit inner_startupjobs(nullptr);
+                m_inner_refresh = true;
                 return;
             }
         }
@@ -786,10 +789,8 @@ bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, i
         args << "/command:repostatus";
         break;
     }
-    defualt:
-    {
+    default:
         break;
-    }
     }
     args << "/path:" + addr;
     args << "/closeonend:" + QString::number(closeonend);

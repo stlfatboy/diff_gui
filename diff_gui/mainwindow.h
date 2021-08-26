@@ -61,10 +61,6 @@ private slots:
 
     void on_pushButton_refresh_clicked();
 
-signals:
-
-    void inner_startupjobs(char* addr);
-
 private:
 
     bool svn_cli_execute(const QString &addr, const QStringList & args,  QByteArray *result = nullptr);
@@ -91,6 +87,7 @@ private:
     QStringList m_unchecked_files;
     QStringList m_targetfilelist;
     int m_target_revision;
+    bool m_inner_refresh = false;
 
     QString m_addr;
     QString m_diff;
