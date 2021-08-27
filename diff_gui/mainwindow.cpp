@@ -89,39 +89,42 @@ void MainWindow::setaddr(char *addr)
 
 void MainWindow::startupjobs(char *addr)
 {
+    if (addr)
+    {
+        setaddr(addr);
+    }
+    else
+    {
+        m_filelist.clear();
+        m_Real_Dir.clear();
+        m_Real_Display.clear();
+        m_Display_Real.clear();
+        ui->LogText->appendPlainText("Reload File List");
+    }
+
+    if(m_addr.length() == 0)
+    {
+        ui->LogText->appendPlainText("Current Working Directory Incorrect");
+        return;
+    }
+    progress_dialog->setText("Loading Changes");
+    progress_dialog->show();
+
+    // Find Repos, Skip when refresh
+    if (addr)
+    {
+        m_root_repo = m_dir.exists(".svn");
+        if (!m_root_repo) findrepo(0);
+        else ui->LogText->appendPlainText("Root Repo");
+        ui->comboBox->addItems(m_dirlist);
+    }
+
+
     do{
-        if (m_inner_refresh) m_inner_refresh = false;
-
-        if (addr)
+        if (m_inner_refresh)
         {
-            setaddr(addr);
+            m_inner_refresh = false;
         }
-        else
-        {
-            m_filelist.clear();
-            m_Real_Dir.clear();
-            m_Real_Display.clear();
-            m_Display_Real.clear();
-            ui->LogText->appendPlainText("Reload File List");
-        }
-
-        if(m_addr.length() == 0)
-        {
-            ui->LogText->appendPlainText("Current Working Directory Incorrect");
-            return;
-        }
-        progress_dialog->setText("Loading Changes");
-        progress_dialog->show();
-
-        // Find Repos, Skip when refresh
-        if (addr)
-        {
-            m_root_repo = m_dir.exists(".svn");
-            if (!m_root_repo) findrepo(0);
-            else ui->LogText->appendPlainText("Root Repo");
-            ui->comboBox->addItems(m_dirlist);
-        }
-
 
         // get diff status
         bool ret = true;
@@ -156,26 +159,27 @@ void MainWindow::startupjobs(char *addr)
                 }
             }
         }
-
-        // show file list
-        showfilelist("[All]");
-
-        progress_dialog->reset();
-
-        if (!m_dirlist.empty() || m_root_repo) ui->pushButton_svn_up->setEnabled(true);
-
-        if(m_targetfilelist.size() == 0)
-        {
-            ui->LogText->appendPlainText("No Selected File(s)");
-            return;
-        }
-
-        ui->pushButton_gen_diff->setEnabled(true);
-        ui->pushButton_svn_ci->setEnabled(true);
-        ui->pushButton_svn_re->setEnabled(true);
-        ui->checkBox->setEnabled(true);
-        ui->checkBox->setChecked(true);
     }while(m_inner_refresh);
+
+    // show file list
+    showfilelist("[All]");
+
+    progress_dialog->reset();
+
+    if (!m_dirlist.empty() || m_root_repo) ui->pushButton_svn_up->setEnabled(true);
+
+    if(m_targetfilelist.size() == 0)
+    {
+        ui->LogText->appendPlainText("No Selected File(s)");
+        return;
+    }
+
+    ui->pushButton_gen_diff->setEnabled(true);
+    ui->pushButton_svn_ci->setEnabled(true);
+    ui->pushButton_svn_re->setEnabled(true);
+    ui->checkBox->setEnabled(true);
+    ui->checkBox->setChecked(true);
+
 }
 
 
@@ -222,6 +226,15 @@ void MainWindow::checkVersionConsistency()
 void MainWindow::loadfilelist(QByteArray & data, int workingdir)
 {
     int j = 0;
+    bool exception_reject = false;
+    if (m_inner_refresh)
+    {
+        m_filelist.clear();
+        m_Real_Dir.clear();
+        m_Real_Display.clear();
+        m_Display_Real.clear();
+    }
+
     while(-1 != (j = data.indexOf('\n', j)))
     {
         QString line(data.left(j));
@@ -269,16 +282,23 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("C");
         if (pos != std::string::npos && pos == 0)
         {
-            QMessageBox msgBox;
-            msgBox.setText(QString("Conflict Detected at repo: %1").arg(m_dirlist[workingdir]));
-            msgBox.setInformativeText("Do you want to go to repo and resolve it?");
-            msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
-            msgBox.setDefaultButton(QMessageBox::Yes);
-            if (QMessageBox::Yes == msgBox.exec())
+            if (!exception_reject)
             {
-                svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
-                m_inner_refresh = true;
-                return;
+                QMessageBox msgBox;
+                msgBox.setText(QString("Conflict Detected at repo: %1").arg(m_dirlist[workingdir]));
+                msgBox.setInformativeText("Do you want to go to repo and resolve it?");
+                msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
+                msgBox.setDefaultButton(QMessageBox::Yes);
+                if (QMessageBox::Yes == msgBox.exec())
+                {
+                    svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
+                    m_inner_refresh = true;
+                    return;
+                }
+                else
+                {
+                    exception_reject = true;
+                }
             }
         }
 
@@ -286,16 +306,23 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("!");
         if (pos != std::string::npos && pos == 0)
         {
-            QMessageBox msgBox;
-            msgBox.setText(QString("Missing Detected at repo: %1").arg(m_dirlist[workingdir]));
-            msgBox.setInformativeText("Do you want to go to repo and check it?");
-            msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
-            msgBox.setDefaultButton(QMessageBox::Yes);
-            if (QMessageBox::Yes == msgBox.exec())
+            if (!exception_reject)
             {
-                svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
-                m_inner_refresh = true;
-                return;
+                QMessageBox msgBox;
+                msgBox.setText(QString("Missing Detected at repo: %1").arg(m_dirlist[workingdir]));
+                msgBox.setInformativeText("Do you want to go to repo and check it?");
+                msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
+                msgBox.setDefaultButton(QMessageBox::Yes);
+                if (QMessageBox::Yes == msgBox.exec())
+                {
+                    svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
+                    m_inner_refresh = true;
+                    return;
+                }
+                else
+                {
+                    exception_reject = true;
+                }
             }
         }
 
@@ -569,6 +596,8 @@ void MainWindow::onCommitDialogFinished(int result)
         return;
     }
     msg.replace('\n', '\r');
+    ci_dialog->addHistory(msg);
+
 
     progress_dialog->setText("Committing");
     progress_dialog->show();

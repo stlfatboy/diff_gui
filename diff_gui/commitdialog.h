@@ -3,6 +3,8 @@
 
 #include <QDialog>
 
+#define FILENAME "commit_history"
+
 namespace Ui {
 class CIDialog;
 }
@@ -15,6 +17,7 @@ public:
     ~CommitDialog();
 
     QString getMessage();
+    void addHistory(QString & data);
 
 private:
     Ui::CIDialog* ui;
