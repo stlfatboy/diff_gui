@@ -19,6 +19,12 @@ public:
     QString getMessage();
     void addHistory(QString & data);
 
+signals:
+    void log(QString data);
+
+private slots:
+    void on_comboBox_ci_history_currentTextChanged(const QString &arg1);
+
 private:
     Ui::CIDialog* ui;
 };

@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox->addItem("[All]", 0);
 
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
+    connect(ci_dialog, &CommitDialog::log, [&](QString data){ui->LogText->appendPlainText(data);});
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
