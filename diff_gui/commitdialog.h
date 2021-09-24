@@ -27,6 +27,7 @@ private slots:
 
 private:
     Ui::CIDialog* ui;
+    bool m_refresh_history = false;
 };
 
 #endif // COMMITDIALOG_H

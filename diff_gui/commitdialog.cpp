@@ -20,15 +20,28 @@ CommitDialog::CommitDialog(QWidget * parent)
         {
             QString data;
             history >> data;
+            if (history.status() == QDataStream::ReadCorruptData)
+            {
+                qDebug() << "CI History ReadCorruptData: Delete it later";
+                m_refresh_history = true;
+                break;
+            }
             ui->comboBox_ci_history->addItem(data);
-            qDebug() << data;
+            qDebug() << "ReadCIHistory" << history.status() << ": " << data;
         }
+
+        file.close();
     }
 }
 
 
 CommitDialog::~CommitDialog()
 {
+    if (m_refresh_history)
+    {
+        QFile::remove(file_name);
+        m_refresh_history = false;
+    }
     delete ui;
 }
 
@@ -39,6 +52,12 @@ QString CommitDialog::getMessage()
 
 void CommitDialog::addHistory(QString &data)
 {
+    if (m_refresh_history)
+    {
+        QFile::remove(file_name);
+        m_refresh_history = false;
+    }
+
     QFile file(file_name);
     if(!file.open(QIODevice::ReadWrite))
     {
