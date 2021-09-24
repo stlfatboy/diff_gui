@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label_version->setText("2021.8.2");
+    ui->label_version->setText("2021.9.1");
     ui->label_help->setText("<a href = \"http://10.22.34.133/index.php/2021/07/30/374/\"> Open Help");
     ui->label_help->setOpenExternalLinks(true);
     ui->pushButton_gen_diff->setDisabled(true);
@@ -603,61 +603,64 @@ void MainWindow::onCommitDialogFinished(int result)
     progress_dialog->setText("Committing");
     progress_dialog->show();
 
-    bool ret = true;
+    bool ret = false;
     QStringList args;
 
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行ci
-    if (m_root_repo)
-    {
-        args << "ci" << "-m" << msg;
-        for(auto & target : m_targetfilelist)
+    do{
+        if (m_root_repo)
         {
-            args << target;
-        }
-
-        ret = svn_cli_execute(m_addr, args);
-    }
-    else
-    {
-        int count = 0;
-        int last_dir = -1;
-        for(auto & target : m_targetfilelist)
-        {
-            int current_dir = m_Real_Dir.find(target.toStdString())->second;
-            if (current_dir != last_dir)
+            args << "ci" << "-m" << msg;
+            for(auto & target : m_targetfilelist)
             {
-                // Run if dir changed
-                if (last_dir != -1)
-                {
-                    progress_dialog->setValue(count * 100 / m_targetfilelist.size());
-                    QCoreApplication::processEvents();
-                    ret = svn_cli_execute(m_dirlist.at(last_dir), args);
-                    if (!ret)
-                    {
-                        ui->LogText->appendPlainText("Separate Commit Abort");
-                        return;
-                    }
-                    args.clear();
-                }
-
-                last_dir = current_dir;
-                args << "ci" << "-m" << msg;
+                args << target;
             }
 
-            args << target;
-            count++;
+            ret = svn_cli_execute(m_addr, args);
         }
-
-        progress_dialog->setValue(count * 100 / m_dirlist.size());
-        QCoreApplication::processEvents();
-        ret = svn_cli_execute(m_dirlist.at(last_dir), args);
-        if (!ret)
+        else
         {
-            ui->LogText->appendPlainText("Separate Commit Abort");
-            return;
+            int count = 0;
+            int last_dir = -1;
+            for(auto & target : m_targetfilelist)
+            {
+                int current_dir = m_Real_Dir.find(target.toStdString())->second;
+                if (current_dir != last_dir)
+                {
+                    // Run if dir changed
+                    if (last_dir != -1)
+                    {
+                        progress_dialog->setValue(count * 100 / m_targetfilelist.size());
+                        QCoreApplication::processEvents();
+                        ret = svn_cli_execute(m_dirlist.at(last_dir), args);
+                        if (!ret)
+                        {
+                            ui->LogText->appendPlainText("Separate Commit Abort");
+                            break;
+                        }
+                        args.clear();
+                    }
+
+                    last_dir = current_dir;
+                    args << "ci" << "-m" << msg;
+                }
+
+                args << target;
+                count++;
+            }
+
+            progress_dialog->setValue(count * 100 / m_dirlist.size());
+            QCoreApplication::processEvents();
+            ret = svn_cli_execute(m_dirlist.at(last_dir), args);
+            if (!ret)
+            {
+                ui->LogText->appendPlainText("Separate Commit Abort");
+                break;
+            }
         }
     }
+    while(false);
 
     if (ret) ui->LogText->appendPlainText(QStringLiteral("Commit Finished"));
     startupjobs(nullptr);
