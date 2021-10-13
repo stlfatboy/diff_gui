@@ -534,7 +534,6 @@ void MainWindow::on_Filelistwidget_itemChanged(QListWidgetItem *item)
             }
             ++itr;
         }
-
     }
 }
 

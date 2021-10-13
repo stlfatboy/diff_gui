@@ -27,12 +27,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         commitdialog.cpp \
+        logging.cpp \
         main.cpp \
         mainwindow.cpp \
         progressdialog.cpp
 
 HEADERS += \
         commitdialog.h \
+        logging.h \
         mainwindow.h \
         progressdialog.h
 
