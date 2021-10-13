@@ -605,6 +605,7 @@ void MainWindow::onCommitDialogFinished(int result)
 
     bool ret = false;
     QStringList args;
+    QByteArray res_info;
 
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行ci
@@ -617,7 +618,7 @@ void MainWindow::onCommitDialogFinished(int result)
                 args << target;
             }
 
-            ret = svn_cli_execute(m_addr, args);
+            ret = svn_cli_execute(m_addr, args, &res_info);
         }
         else
         {
@@ -652,7 +653,7 @@ void MainWindow::onCommitDialogFinished(int result)
 
             progress_dialog->setValue(count * 100 / m_dirlist.size());
             QCoreApplication::processEvents();
-            ret = svn_cli_execute(m_dirlist.at(last_dir), args);
+            ret = svn_cli_execute(m_dirlist.at(last_dir), args, &res_info);
             if (!ret)
             {
                 ui->LogText->appendPlainText("Separate Commit Abort");
@@ -662,7 +663,12 @@ void MainWindow::onCommitDialogFinished(int result)
     }
     while(false);
 
-    if (ret) ui->LogText->appendPlainText(QStringLiteral("Commit Finished"));
+    QMessageBox msgBox;
+    msgBox.setTextFormat(Qt::MarkdownText);
+    res_info.replace('\n', "  \n");
+    msgBox.setText((ret ? QStringLiteral("## Commit Finished\n") : QStringLiteral("## Commit Failed\n")) + res_info);
+    msgBox.exec();
+
     startupjobs(nullptr);
 
     progress_dialog->reset();
@@ -798,8 +804,9 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
     ui->LogText->appendPlainText(log);
     p.start("svn", args);
     p.waitForFinished();
+    p.waitForReadyRead();
 
-    if (result) *result = p.readAll();
+    if (result) *result = p.readAll() + p.readAllStandardError();
     else ui->LogText->appendPlainText(p.readAll());
 
     return p.exitCode() == 0;
