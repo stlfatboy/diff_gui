@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_diff_file(nullptr)
 {
     ui->setupUi(this);
-    ui->label_version->setText("2021.9.1");
+    ui->label_version->setText("2021.10.1");
     ui->label_help->setText("<a href = \"http://10.22.34.133/index.php/2021/07/30/374/\"> Open Help");
     ui->label_help->setOpenExternalLinks(true);
     ui->pushButton_gen_diff->setDisabled(true);
