@@ -3,12 +3,13 @@
 
 #include <QDialog>
 
-#define FILENAME "commit_history"
+#define FILENAME "commit_history.db"
 
 namespace Ui {
 class CIDialog;
 }
 
+class QSqlDatabase;
 class CommitDialog : public QDialog
 {
     Q_OBJECT
@@ -27,7 +28,7 @@ private slots:
 
 private:
     Ui::CIDialog* ui;
-    bool m_refresh_history = false;
+    QSqlDatabase* m_db;
 };
 
 #endif // COMMITDIALOG_H

@@ -5,7 +5,6 @@
 
 #include "logging.h"
 
-
 QScopedPointer<QFile> m_logFile;
 
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -37,6 +36,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     // Set the logging file
     // check which a path to file you use
     m_logFile.reset(new QFile(QDir::homePath() + "/Diff_Utils/log.txt"));
