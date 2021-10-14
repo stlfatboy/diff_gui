@@ -1,5 +1,6 @@
 #include "commitdialog.h"
 #include "ui_ci_dialog.h"
+#include "logging.h"
 
 #include <QFile>
 #include <QDir>
@@ -26,8 +27,12 @@ CommitDialog::CommitDialog(QWidget * parent)
                 m_refresh_history = true;
                 break;
             }
-            ui->comboBox_ci_history->addItem(data);
-            qDebug() << "ReadCIHistory" << history.status() << ": " << data;
+
+            if (!data.isEmpty())
+            {
+                ui->comboBox_ci_history->addItem(data);
+                qDebug() << "Readed CIHistory" << history.status() << ": " << data;
+            }
         }
 
         file.close();
@@ -59,22 +64,26 @@ void CommitDialog::addHistory(QString &data)
     }
 
     QFile file(file_name);
-    if(!file.open(QIODevice::ReadWrite))
+    if(!file.open(QIODevice::Append))
     {
         QDir dir;
         dir.mkpath(QDir::homePath() + "/Diff_Utils/");
         if(!file.open(QIODevice::ReadWrite)) return;
     }
 
-    ui->comboBox_ci_history->addItem(data);
-    QDataStream history(&file);
-    if (ui->comboBox_ci_history->count() > 30)
+    if (-1 == ui->comboBox_ci_history->findText(data))
     {
-        ui->comboBox_ci_history->removeItem(0);
-        QString ignore;
-        history >> ignore;
+        qDebug() << "Added CIHistory: " << data;
+        ui->comboBox_ci_history->addItem(data);
+        QDataStream history(&file);
+        if (ui->comboBox_ci_history->count() > 30)
+        {
+            ui->comboBox_ci_history->removeItem(0);
+            QString ignore;
+            history >> ignore;
+        }
+        history << data;
     }
-    history << data;
 
     file.close();
 }

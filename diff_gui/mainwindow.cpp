@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "commitdialog.h"
 #include "progressdialog.h"
+#include "logging.h"
 
 #include <QMessageBox>
 #include <QStringListModel>
@@ -62,7 +63,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::hasUpdate(QtAutoUpdater::Updater::State state)
 {
-    qDebug() << "Update State " << state;
+    qDebug() << "Auto Update State: " << state;
     if (state == QtAutoUpdater::Updater::State::NewUpdates)
     {
         QMessageBox mb;
@@ -85,11 +86,14 @@ void MainWindow::setaddr(char *addr)
     else
     {
         ui->LogText->appendPlainText(QStringLiteral("Current Path: %1").arg(m_addr));
+        qDebug() << QStringLiteral("Current Path: %1").arg(m_addr);
     }
 }
 
 void MainWindow::startupjobs(char *addr)
 {
+    qInfo() << m_addr;
+
     if (addr)
     {
         setaddr(addr);
@@ -101,6 +105,7 @@ void MainWindow::startupjobs(char *addr)
         m_Real_Display.clear();
         m_Display_Real.clear();
         ui->LogText->appendPlainText("Reload File List");
+        qDebug() << QStringLiteral("Reload File List");
     }
 
     if(m_addr.length() == 0)
@@ -114,9 +119,17 @@ void MainWindow::startupjobs(char *addr)
     // Find Repos, Skip when refresh
     if (addr)
     {
+        qDebug() << QStringLiteral("Find Repos");
         m_root_repo = m_dir.exists(".svn");
-        if (!m_root_repo) findrepo(0);
-        else ui->LogText->appendPlainText("Root Repo");
+        if (!m_root_repo)
+        {
+            qDebug() << QStringLiteral("Find Repos recursively");
+            findrepo(0);
+        }
+        else
+        {
+            ui->LogText->appendPlainText("Root Repo");
+        }
         ui->comboBox->addItems(m_dirlist);
     }
 
@@ -124,6 +137,7 @@ void MainWindow::startupjobs(char *addr)
     do{
         if (m_inner_refresh)
         {
+            qDebug() << QStringLiteral("a inner refresh");
             m_inner_refresh = false;
         }
 
@@ -134,11 +148,13 @@ void MainWindow::startupjobs(char *addr)
         QByteArray result;
         if (m_root_repo)
         {
+            qInfo() << QStringLiteral("svn_cli_execute for root repo");
             ret = svn_cli_execute(m_addr, args, &result);
             if (ret) loadfilelist(result);
             else
             {
                 ui->LogText->appendPlainText("Get Change State Failed");
+                qWarning() << QStringLiteral("Get Change State Failed");
                 progress_dialog->reset();
                 return;
             }
@@ -155,6 +171,7 @@ void MainWindow::startupjobs(char *addr)
                 else
                 {
                     ui->LogText->appendPlainText("Get Change State Failed at" + dir);
+                    qWarning() << QStringLiteral("Get Change State Failed at %1").arg(dir);
                     progress_dialog->reset();
                     return;
                 }
@@ -171,7 +188,7 @@ void MainWindow::startupjobs(char *addr)
 
     if(m_targetfilelist.size() == 0)
     {
-        ui->LogText->appendPlainText("No Selected File(s)");
+        ui->LogText->appendPlainText("No Available File(s)");
         return;
     }
 
@@ -190,16 +207,17 @@ void MainWindow::checkVersionConsistency()
 
     QStringList args;
     args << "info" << "--show-item" << "revision";
-    QStringList revision;
 
     QString target_dir;
     bool consist = true;
     for (auto & element : m_dirlist)
     {
         QByteArray temp_result;
+        qDebug() << QStringLiteral("check revision consistency(for %1)").arg(element);
         if (svn_cli_execute(element, args, &temp_result))
         {
             const int temp_revision = temp_result.toInt();
+            qDebug() << QStringLiteral("%1 at revision %2").arg(element).arg(temp_revision);
             if (m_target_revision != 0 && temp_revision != m_target_revision) consist = false;
             if (temp_revision > m_target_revision)
             {
@@ -230,11 +248,19 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
     bool exception_reject = false;
     if (m_inner_refresh)
     {
+        qDebug() << QStringLiteral("inner refresh clean");
         m_filelist.clear();
         m_Real_Dir.clear();
         m_Real_Display.clear();
         m_Display_Real.clear();
     }
+
+    int m = 0;
+    int d = 0;
+    int a = 0;
+    int c = 0;
+    int mi = 0;
+    int u = 0;
 
     while(-1 != (j = data.indexOf('\n', j)))
     {
@@ -250,6 +276,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         std::size_t pos = stline.find_first_of("M");
         if (pos != std::string::npos && pos == 0)
         {
+            m++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
             m_Real_Display.insert({filename, stline});
@@ -261,6 +288,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("D");
         if(pos != std::string::npos && pos == 0)
         {
+            d++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
             m_Real_Display.insert({filename, stline});
@@ -272,6 +300,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("A");
         if(pos != std::string::npos && pos == 0)
         {
+            a++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
             m_Real_Display.insert({filename, stline});
@@ -283,6 +312,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("C");
         if (pos != std::string::npos && pos == 0)
         {
+            c++;
             if (!exception_reject)
             {
                 QMessageBox msgBox;
@@ -307,6 +337,7 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         pos = stline.find_first_of("!");
         if (pos != std::string::npos && pos == 0)
         {
+            mi++;
             if (!exception_reject)
             {
                 QMessageBox msgBox;
@@ -327,9 +358,14 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             }
         }
 
+        u++;
+
         data.remove(0, ++j);
         j = 0;
     }
+
+    qDebug() << QStringLiteral("loaded modified(%1) delete(%2) add(%3) conflict(%4) missing(%5) unknown(%6)")
+                    .arg(m).arg(d).arg(a).arg(c).arg(mi).arg(u);
 }
 
 void MainWindow::showfilelist(const QString & filter)
@@ -337,6 +373,7 @@ void MainWindow::showfilelist(const QString & filter)
     ui->Filelistwidget->clear();
     m_targetfilelist.clear();
     const bool show_all = filter == "[All]";
+    if (!show_all) qInfo() << "Using filter " + filter;
 
     for (const auto & file : m_filelist)
     {
@@ -445,16 +482,21 @@ void MainWindow::on_pushButton_gen_diff_clicked()
         diff.close();
     }
 
+    QMessageBox msgBox;
     if (ret == 0)
     {
-        ui->LogText->appendPlainText(QStringLiteral("Create diff.patch Successfully"));
-        m_diff_file->remove();
+        msgBox.setText(QStringLiteral("Create diff.patch Successfully"));
     }
     else
     {
-        ui->LogText->appendPlainText(QStringLiteral("Create diff.patch Failed"));
+        msgBox.setText(QStringLiteral("Create diff.patch Failed"));
     }
+
+    msgBox.exec();
+
+    m_diff_file->remove();
     delete m_diff_file;
+
 }
 
 void MainWindow::findrepo(int deepth)
@@ -462,6 +504,8 @@ void MainWindow::findrepo(int deepth)
     // 递归深度优先查找svn仓库
     if (deepth > 2)
     {
+        qDebug() << QStringLiteral("reaching max deepth(%1)").arg(deepth);
+        qDebug() << QStringLiteral("total repo(%1)").arg(m_dirlist.size());
         return;
     }
 
@@ -469,10 +513,11 @@ void MainWindow::findrepo(int deepth)
     for (auto & element : entry_list)
     {
         const bool ret = m_dir.cd(element);
-        //qDebug() << "deepth" << deepth << " " << m_dir.path();
+        qDebug() << QStringLiteral("%1(deepth %2)").arg(m_dir.path()).arg(deepth);
         if (m_dir.exists(".svn"))
         {
             m_dirlist.append(m_dir.path());
+            qDebug() << QStringLiteral("hit(%1)").arg(m_dir.path());
         }
         else
         {
@@ -668,6 +713,7 @@ void MainWindow::onCommitDialogFinished(int result)
     msgBox.setText((ret ? QStringLiteral("## Commit Finished\n") : QStringLiteral("## Commit Failed\n")) + res_info);
     msgBox.exec();
 
+    qInfo() << "Refresh After Commit";
     startupjobs(nullptr);
 
     progress_dialog->reset();
@@ -788,6 +834,7 @@ void MainWindow::on_pushButton_svn_re_clicked()
         ui->LogText->appendPlainText("Revert Failed");
     }
 
+    qInfo() << "Refresh After Revert";
     startupjobs(nullptr);
 
     progress_dialog->reset();
@@ -880,15 +927,19 @@ void MainWindow::update_repo(int revision)
         }
     }
 
-    ui->LogText->appendPlainText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
-    startupjobs(nullptr);
-
     progress_dialog->reset();
+
+    QMessageBox msgBox;
+    msgBox.setText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
+    msgBox.exec();
+    qInfo() << "Refresh After Update";
+    startupjobs(nullptr);
 }
 
 
 void MainWindow::on_pushButton_refresh_clicked()
 {
+    qInfo() << "Refresh on click";
     startupjobs(nullptr);
 }
 

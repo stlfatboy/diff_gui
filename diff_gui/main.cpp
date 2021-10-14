@@ -5,6 +5,7 @@
 
 #include "logging.h"
 
+
 QScopedPointer<QFile> m_logFile;
 
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -23,7 +24,11 @@ void messageHandler(QtMsgType type, const QMessageLogContext &context, const QSt
     case QtFatalMsg:    out << "FTL "; break;
     }
     // Write to the output category of the message and the message itself
-    out << context.category << ": " << msg << endl;
+    out << QStringLiteral("%1[%2:%3 in %4]")
+               .arg(msg)
+               .arg(context.function)
+               .arg(context.line)
+               .arg(context.file) << endl;
     out.flush();    // Clear the buffered data
 }
 
