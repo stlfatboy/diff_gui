@@ -37,49 +37,6 @@
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
     </property>
-    <item row="14" column="0">
-     <widget class="QLabel" name="label_3">
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Log&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-     </widget>
-    </item>
-    <item row="11" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QPushButton" name="pushButton_gen_diff">
-        <property name="text">
-         <string>Generate Diff</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_svn_re">
-        <property name="text">
-         <string>SVN Revert</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_svn_ci">
-        <property name="text">
-         <string>SVN Commit</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="12" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <item>
-       <widget class="QPushButton" name="pushButton_svn_up">
-        <property name="text">
-         <string>SVN Update to</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
     <item row="17" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
@@ -110,6 +67,24 @@
       </item>
      </layout>
     </item>
+    <item row="12" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QPushButton" name="pushButton_svn_up">
+        <property name="text">
+         <string>SVN Update to</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;File List&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
     <item row="4" column="0">
      <widget class="QListWidget" name="Filelistwidget">
       <property name="sizePolicy">
@@ -126,35 +101,6 @@
       </property>
       <property name="resizeMode">
        <enum>QListView::Fixed</enum>
-      </property>
-     </widget>
-    </item>
-    <item row="16" column="0">
-     <widget class="QPlainTextEdit" name="LogText">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>10</height>
-       </size>
-      </property>
-      <property name="baseSize">
-       <size>
-        <width>0</width>
-        <height>30</height>
-       </size>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; font-weight:600;&quot;&gt;File List&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -205,10 +151,75 @@
       </item>
      </layout>
     </item>
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Log&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="pushButton_gen_diff">
+        <property name="text">
+         <string>Generate Diff</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_svn_re">
+        <property name="text">
+         <string>SVN Revert</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_svn_ci">
+        <property name="text">
+         <string>SVN Commit</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="16" column="0">
+     <widget class="QPlainTextEdit" name="LogText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>10</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>0</width>
+        <height>30</height>
+       </size>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>pushButton_refresh</tabstop>
+  <tabstop>pushButton_gen_diff</tabstop>
+  <tabstop>pushButton_svn_re</tabstop>
+  <tabstop>pushButton_svn_ci</tabstop>
+  <tabstop>pushButton_svn_up</tabstop>
+  <tabstop>Filelistwidget</tabstop>
+  <tabstop>checkBox</tabstop>
+  <tabstop>comboBox</tabstop>
+  <tabstop>LogText</tabstop>
+ </tabstops>
  <resources>
   <include location="res.qrc"/>
  </resources>
