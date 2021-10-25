@@ -29,6 +29,7 @@ CommitDialog::CommitDialog(QWidget * parent)
     }
     else
     {
+        ui->comboBox_ci_history->setInsertPolicy(QComboBox::InsertBeforeCurrent);
         QSqlQuery query;
         query.exec("CREATE TABLE history (id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
         qDebug() << "Create Table " + query.lastError().text();
