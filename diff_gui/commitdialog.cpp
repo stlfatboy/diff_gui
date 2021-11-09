@@ -11,7 +11,8 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-static const QString file_name = QDir::homePath() + "/Diff_Utils/" + FILENAME;
+static const QString user_data_dir = QDir::homePath() + "/Diff_Utils/";
+static const QString db_file_name = user_data_dir + FILENAME;
 QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
 
 CommitDialog::CommitDialog(QWidget * parent)
@@ -20,7 +21,17 @@ CommitDialog::CommitDialog(QWidget * parent)
 
 {
     ui->setupUi(this);
-    db.setDatabaseName(file_name);
+    QDir dir(user_data_dir);
+    if (!dir.exists())
+    {
+        qInfo() << "Create User Data Folder";
+        if (!dir.mkpath(user_data_dir))
+        {
+            qWarning() << "Create User Data Folder Failed";
+        }
+    }
+
+    db.setDatabaseName(db_file_name);
     if (!db.open())
     {
         QMessageBox msgBox;

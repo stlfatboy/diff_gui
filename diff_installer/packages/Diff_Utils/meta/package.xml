@@ -2,8 +2,8 @@
 <Package>
     <DisplayName>Main Interface</DisplayName>
     <Description>Main Interface</Description>
-    <Version>2021.10.1</Version>
-    <ReleaseDate>2021-10-14</ReleaseDate>
+    <Version>2021.10.2</Version>
+    <ReleaseDate>2021-11-09</ReleaseDate>
     <Script>installscript.qs</Script>
     <ForcedInstallation>true</ForcedInstallation>
 </Package>
