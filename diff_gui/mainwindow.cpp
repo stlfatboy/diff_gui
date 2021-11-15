@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
-    //m_updater->checkForUpdates();
+    m_updater->checkForUpdates();
 }
 
 MainWindow::~MainWindow()
