@@ -181,6 +181,13 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_show_log">
+        <property name="text">
+         <string>Show Log</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item row="16" column="0">

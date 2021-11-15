@@ -9,11 +9,13 @@
 #include <QMap>
 #include <QtAutoUpdaterCore>
 
+#define DEFAULT_FOLDER_FILTER "[All]"
 
 enum TortoiseSVNCMD
 {
     resolve = 0,
-    repostatus
+    repostatus,
+    showlog
 };
 
 namespace Ui {
@@ -35,7 +37,7 @@ public slots:
     void startupjobs(char* addr);
     void checkVersionConsistency();
     void loadfilelist(QByteArray & data, int workingdir = -1);
-    void showfilelist(const QString & filter);
+    void showfilelist();
     void findrepo(int deepth);
 
 private slots:
@@ -61,11 +63,13 @@ private slots:
 
     void on_pushButton_refresh_clicked();
 
+    void on_pushButton_show_log_clicked();
+
 private:
 
     bool svn_cli_execute(const QString &addr, const QStringList & args,  QByteArray *result = nullptr);
 
-    bool svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend = 0);
+    bool svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend = 0, bool detach = false);
 
     void update_repo(int revision);
 
@@ -91,6 +95,7 @@ private:
 
     QString m_addr;
     QString m_diff;
+    QString m_cur_fliter;
 
     QFile* m_diff_file;
 };

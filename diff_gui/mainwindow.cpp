@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->pushButton_svn_up->setDisabled(true);
     ui->pushButton_svn_re->setDisabled(true);
     ui->checkBox->setDisabled(true);
-    ui->comboBox->addItem("[All]", 0);
+    ui->comboBox->addItem(DEFAULT_FOLDER_FILTER, 0);
 
     connect(ci_dialog, &CommitDialog::finished, this, &MainWindow::onCommitDialogFinished);
     connect(ci_dialog, &CommitDialog::log, [&](QString data){ui->LogText->appendPlainText(data);});
@@ -180,7 +180,8 @@ void MainWindow::startupjobs(char *addr)
     }while(m_inner_refresh);
 
     // show file list
-    showfilelist("[All]");
+    m_cur_fliter = DEFAULT_FOLDER_FILTER;
+    showfilelist();
 
     progress_dialog->reset();
 
@@ -368,18 +369,18 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
                     .arg(m).arg(d).arg(a).arg(c).arg(mi).arg(u);
 }
 
-void MainWindow::showfilelist(const QString & filter)
+void MainWindow::showfilelist()
 {
     ui->Filelistwidget->clear();
     m_targetfilelist.clear();
-    const bool show_all = filter == "[All]";
-    if (!show_all) qInfo() << "Using filter " + filter;
+    const bool show_all = m_cur_fliter == DEFAULT_FOLDER_FILTER;
+    if (!show_all) qInfo() << "Using filter " + m_cur_fliter;
 
     for (const auto & file : m_filelist)
     {
         if (!show_all)
         {
-            if (file.toStdString().find(filter.toStdString()) == std::string::npos)
+            if (file.toStdString().find(m_cur_fliter.toStdString()) == std::string::npos)
             {
                 continue;
             }
@@ -723,16 +724,16 @@ void MainWindow::onCommitDialogFinished(int result)
 void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
 {
     // 找到前两级目录并应用过滤给文件
-    QString fliter = arg1;
+    m_cur_fliter = arg1;
     auto pos1 = arg1.toStdString().rfind('\\');
     if (pos1 != std::string::npos)
     {
         auto pos0 = arg1.toStdString().rfind('\\', pos1);
-        fliter = QString::fromStdString(arg1.toStdString().substr(pos0 + 1, arg1.length() - pos0));
+        m_cur_fliter = QString::fromStdString(arg1.toStdString().substr(pos0 + 1, arg1.length() - pos0));
     }
 
-    ui->LogText->appendPlainText("Select Folder " + fliter);
-    showfilelist(fliter);
+    ui->LogText->appendPlainText("Select Folder " + m_cur_fliter);
+    showfilelist();
 }
 
 
@@ -859,7 +860,7 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
 }
 
 
-bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend)
+bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, int closeonend, bool detach)
 {
     QProcess p;
     QStringList args;
@@ -875,6 +876,11 @@ bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, i
         args << "/command:repostatus";
         break;
     }
+    case TortoiseSVNCMD::showlog:
+    {
+        args << "/command:log";
+        break;
+    }
     default:
         break;
     }
@@ -883,8 +889,16 @@ bool MainWindow::svn_tortoise_execute(TortoiseSVNCMD cmd, const QString &addr, i
     QString log = QString("(%1):tortoisesvn").arg(addr);
     for (auto & arg : args) log += " " + arg;
     ui->LogText->appendPlainText(log);
-    p.start("TortoiseProc.exe", args);
-    p.waitForFinished();
+    if (detach)
+    {
+        p.startDetached("TortoiseProc.exe", args);
+    }
+    else
+    {
+        p.start("TortoiseProc.exe", args);
+        p.waitForFinished();
+    }
+
 
     return p.exitCode() == 0;
 }
@@ -941,5 +955,34 @@ void MainWindow::on_pushButton_refresh_clicked()
 {
     qInfo() << "Refresh on click";
     startupjobs(nullptr);
+}
+
+
+void MainWindow::on_pushButton_show_log_clicked()
+{
+    qInfo() << "Show Log for " + ui->comboBox->currentText();
+
+    if (m_cur_fliter == DEFAULT_FOLDER_FILTER)
+    {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText(QString("You Choose to Show All Logs, Will Open %1 Window(s)").arg(m_dirlist.count()));
+        msgBox.setStandardButtons(QMessageBox::Ignore | QMessageBox::Abort);
+        int ret = msgBox.exec();
+        if (ret == QMessageBox::Abort)
+        {
+            return;
+        }
+
+        for (const auto & dir : m_dirlist)
+        {
+            svn_tortoise_execute(TortoiseSVNCMD::showlog, dir, 0, true);
+        }
+
+    }
+    else
+    {
+        svn_tortoise_execute(TortoiseSVNCMD::showlog, m_cur_fliter);
+    }
 }
 
