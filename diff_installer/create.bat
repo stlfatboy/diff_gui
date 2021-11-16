@@ -1,1 +1,1 @@
-C:\Qt\Tools\QtInstallerFramework\4.1\bin\binarycreator.exe -c config\config.xml -p packages Diff_Utils_Offline.exe
+C:\Qt\Tools\QtInstallerFramework\4.2\bin\binarycreator.exe -n -c config\config.xml -p packages Diff_Utils_Online.exe

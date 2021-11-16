@@ -1,1 +1,1 @@
-C:\Qt\Tools\QtInstallerFramework\4.1\bin\repogen.exe -p packages repo
+C:\Qt\Tools\QtInstallerFramework\4.2\bin\repogen.exe -p packages repo

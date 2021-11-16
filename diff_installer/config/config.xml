@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Installer>
     <Name>Diff Utils</Name>
-    <Version>2021.8.1</Version>
+    <Version>2021.11.1</Version>
     <Title>Diff Utils Installer</Title>
     <Publisher>suny-neu</Publisher>
     <StartMenuDir>Diff Utils</StartMenuDir>
