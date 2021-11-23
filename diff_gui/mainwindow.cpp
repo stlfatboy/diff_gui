@@ -946,6 +946,7 @@ void MainWindow::update_repo(int revision)
     QMessageBox msgBox;
     msgBox.setText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
     msgBox.exec();
+    m_target_revision = revision;
     qInfo() << "Refresh After Update";
     startupjobs(nullptr);
 }
