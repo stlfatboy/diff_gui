@@ -420,11 +420,11 @@ void MainWindow::on_pushButton_gen_diff_clicked()
     if (m_root_repo)
     {
         QTextStream out(m_diff_file);
-        out << "cd " << m_addr << "\n";
-        out << "svn diff ";
+        out << "cd \"" << m_addr << "\"\n";
+        out << "svn diff --force ";
         for(auto & target : m_targetfilelist)
         {
-            out << target << " ";
+            out << '\"' << target << "\" ";
         }
         out << "> diff.patch";
 
@@ -448,11 +448,11 @@ void MainWindow::on_pushButton_gen_diff_clicked()
                     out << "> " << m_addr << '\\' << file << '\n';
                 }
                 last_dir = current_dir;
-                out << "cd " << m_dirlist.at(current_dir) << "\n";
-                out << "svn diff ";
+                out << "cd \"" << m_dirlist.at(current_dir) << "\"\n";
+                out << "svn diff --force ";
             }
 
-            out << target << " ";
+            out << '\"' << target << "\" ";
         }
         QString file = "diff" + QString::fromStdString(std::to_string(last_dir)) + ".patch";
         diff_files << file;
