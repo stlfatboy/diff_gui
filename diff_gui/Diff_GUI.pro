@@ -47,4 +47,8 @@ FORMS += \
 RESOURCES += \
     res.qrc
 
+CONFIG(debug, debug|release) {
+    DEFINES += QMAKE_DEBUG
+}
+
 RC_ICONS = options.ico

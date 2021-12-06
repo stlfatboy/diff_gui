@@ -22,7 +22,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_updater(nullptr)
     , m_root_repo(true)
     , m_target_revision(0)
-    , m_diff_file(nullptr)
 {
     ui->setupUi(this);
     ui->label_version->setText("2021.12.1");
@@ -40,7 +39,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_updater = QtAutoUpdater::Updater::create("qtifw", {{"path", qApp->applicationDirPath() + "/maintenancetool"}}, this);
     connect(m_updater, &QtAutoUpdater::Updater::checkUpdatesDone, this, &MainWindow::hasUpdate);
+#ifndef QMAKE_DEBUG
     m_updater->checkForUpdates();
+#endif
 }
 
 MainWindow::~MainWindow()
@@ -48,17 +49,6 @@ MainWindow::~MainWindow()
     delete ui;
     delete ci_dialog;
     delete progress_dialog;
-    if (m_diff_file != nullptr)
-    {
-        m_diff_file->remove();
-        delete m_diff_file;
-    }
-
-    QListWidgetItem* var = nullptr;
-    foreach (var, m_ListItemVec)
-    {
-        delete var;
-    }
 }
 
 void MainWindow::hasUpdate(QtAutoUpdater::Updater::State state)
@@ -77,7 +67,8 @@ void MainWindow::hasUpdate(QtAutoUpdater::Updater::State state)
 void MainWindow::setaddr(char *addr)
 {
     m_addr = addr;
-    m_dir.setPath(addr);
+    m_addr.replace('\\', '/');
+    m_dir.setPath(m_addr);
 
     if (m_addr.length() == 0)
     {
@@ -268,10 +259,11 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         QString line(data.left(j));
         line.remove('\n');
         line.remove('\r');
+        line.replace('\\', '/');
         std::string stline = line.toStdString();
         std::string filename;
-        QString prefix = m_root_repo ? QDir::currentPath() : m_dirlist.at(workingdir);
-        prefix += '\\';
+        QString prefix = m_root_repo ? m_addr : m_dirlist.at(workingdir);
+        prefix += '/';
 
         // Modified
         std::size_t pos = stline.find_first_of("M");
@@ -317,13 +309,13 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (!exception_reject)
             {
                 QMessageBox msgBox;
-                msgBox.setText(QString("Conflict Detected at repo: %1").arg(m_dirlist[workingdir]));
+                msgBox.setText(QString("Conflict Detected at repo: %1").arg(m_root_repo ? m_addr : m_dirlist[workingdir]));
                 msgBox.setInformativeText("Do you want to go to repo and resolve it?");
                 msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
                 msgBox.setDefaultButton(QMessageBox::Yes);
                 if (QMessageBox::Yes == msgBox.exec())
                 {
-                    svn_tortoise_execute(TortoiseSVNCMD::resolve, m_dirlist[workingdir]);
+                    svn_tortoise_execute(TortoiseSVNCMD::resolve, m_root_repo ? m_addr : m_dirlist[workingdir]);
                     m_inner_refresh = true;
                     return;
                 }
@@ -342,13 +334,13 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             if (!exception_reject)
             {
                 QMessageBox msgBox;
-                msgBox.setText(QString("Missing Detected at repo: %1").arg(m_dirlist[workingdir]));
+                msgBox.setText(QString("Missing Detected at repo: %1").arg(m_root_repo ? m_addr : m_dirlist[workingdir]));
                 msgBox.setInformativeText("Do you want to go to repo and check it?");
                 msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Yes);
                 msgBox.setDefaultButton(QMessageBox::Yes);
                 if (QMessageBox::Yes == msgBox.exec())
                 {
-                    svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_dirlist[workingdir]);
+                    svn_tortoise_execute(TortoiseSVNCMD::repostatus, m_root_repo ? m_addr : m_dirlist[workingdir]);
                     m_inner_refresh = true;
                     return;
                 }
@@ -408,85 +400,136 @@ void MainWindow::on_pushButton_gen_diff_clicked()
         return;
     }
 
-    int ret = 0;
-    m_diff_file = new QFile("Diff_utility.bat");
-    if (!m_diff_file->open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        return;
-    }
+    progress_dialog->setText("Generating Diff");
+    progress_dialog->show();
+    QApplication::processEvents();
+
+    QMessageBox msgBox;
+    int ret = -1;
+    const QString diff_file = m_addr + "/diff.patch";
+    const QString err_file = m_addr + "/diff_error";
+    m_dir.remove(err_file);
 
     // 区分运行时是否在svn仓库
     // 如果不是svn仓库则需要先cd进svn目录后再执行Diff
     if (m_root_repo)
     {
-        QTextStream out(m_diff_file);
-        out << "cd \"" << m_addr << "\"\n";
-        out << "svn diff --force ";
-        for(auto & target : m_targetfilelist)
+        QStringList args;
+        args << "diff" << "--force";
+        unsigned len = 0;
+        for(auto target : m_targetfilelist)
         {
-            out << '\"' << target << "\" ";
+            if (QDir(target).exists()) continue;
+            args << target.remove(m_addr + '/');
+            len += target.size();
         }
-        out << "> diff.patch";
-
-        m_diff_file->close();
-        ret = system("Diff_utility.bat");
+        if (len > 8192)
+        {
+            msgBox.setText(QString("Diff with Too Much args(%1)").arg(len));
+            msgBox.exec();
+        }
+        else
+        {
+            QProcess p;
+            p.setStandardOutputFile(diff_file);
+            p.setStandardErrorFile(err_file);
+            p.setWorkingDirectory(m_addr);
+            p.start("svn", args);
+            p.waitForFinished();
+            ret = p.exitCode();
+            if(ret != 0)
+            {
+                QFile err(err_file);
+                err.open(QIODevice::Append);
+                QTextStream err_stream(&err);
+                for (auto & arg : args) err_stream << arg + '\n';
+                err.close();
+            }
+        }
     }
     else
     {
-        QTextStream out(m_diff_file);
-        int last_dir = -1;
         QStringList diff_files;
-        for(auto & target : m_targetfilelist)
+        std::map<int, QStringList> sorted_args;
+        for(auto target : m_targetfilelist)
         {
-            int current_dir = m_Real_Dir.find(target.toStdString())->second;
-            if (current_dir != last_dir)
+            const int current_dir = m_Real_Dir.find(target.toStdString())->second;
+            // 查找或创建
+            auto arg_itr = sorted_args.find(current_dir);
+            if (arg_itr == sorted_args.end())
             {
-                if (last_dir != -1)
-                {
-                    QString file = "diff" + QString::fromStdString(std::to_string(last_dir)) + ".patch";
-                    diff_files << file;
-                    out << "> " << m_addr << '\\' << file << '\n';
-                }
-                last_dir = current_dir;
-                out << "cd \"" << m_dirlist.at(current_dir) << "\"\n";
-                out << "svn diff --force ";
+                QStringList temp;
+                temp << "diff" << "--force";
+                sorted_args.insert({current_dir, std::move(temp)});
             }
 
-            out << '\"' << target << "\" ";
+            if (QDir(target).exists()) continue;
+            sorted_args.at(current_dir) << target.remove(m_dirlist.at(current_dir) + '/');
         }
-        QString file = "diff" + QString::fromStdString(std::to_string(last_dir)) + ".patch";
-        diff_files << file;
-        out << "> " << m_addr << '\\' << file;
 
-        m_diff_file->close();
-        ret = system("Diff_utility.bat");
-        if (ret != 0)
+        // 执行Diff
+        int count = 0;
+        for (auto & arg : sorted_args)
         {
-            ui->LogText->appendPlainText(QStringLiteral("Do Diff_utility.bat Failed"));\
-            delete m_diff_file;
-            return;
+            unsigned len = 0;
+            for(auto & s : arg.second) len += s.size();
+            if (len > 8192)
+            {
+                msgBox.setText(QString("Diff with Too Much args(%1) at %2").arg(len).arg(m_dirlist.at(arg.first)));
+                msgBox.exec();
+                break;
+            }
+
+            const QString temp_diff = m_addr + "/diff" + QString::fromStdString(std::to_string(arg.first)) + ".patch";
+            diff_files << temp_diff;
+
+            QProcess p;
+            p.setStandardOutputFile(temp_diff);
+            p.setStandardErrorFile(err_file);
+            p.setWorkingDirectory(m_dirlist.at(arg.first));
+            p.start("svn", arg.second);
+            p.waitForFinished();
+            ret = p.exitCode();
+            if(ret != 0)
+            {
+                QFile err(err_file);
+                err.open(QIODevice::Append);
+                QTextStream err_stream(&err);
+                err_stream << m_dirlist.at(arg.first) << '\n';
+                for (auto & e : arg.second) err_stream << e + '\n';
+                err.close();
+                break;
+            }
+
+            progress_dialog->setValue(++count * 100 / sorted_args.size());
+            QApplication::processEvents();
         }
 
         // Combine All Diffs
-        QFile diff("diff.patch");
-        diff.open(QIODevice::WriteOnly | QIODevice::Text);
-        QTextStream diff_combine(&diff);
-        for(auto & element : diff_files)
+        if (ret == 0)
         {
-            QFile temp(element);
-            temp.open(QIODevice::ReadOnly);
-            QTextStream tempstream(&temp);
-            diff_combine << tempstream.readAll();
-            temp.close();
-            temp.remove();
+            QFile diff(diff_file);
+            diff.open(QIODevice::WriteOnly | QIODevice::Text);
+            QTextStream diff_combine(&diff);
+            for(auto & element : diff_files)
+            {
+                QFile temp(element);
+                if (!temp.open(QIODevice::ReadOnly)) continue;
+                QTextStream tempstream(&temp);
+                diff_combine << tempstream.readAll();
+                temp.close();
+                temp.remove();
+            }
+            diff.close();
         }
-        diff.close();
     }
 
-    QMessageBox msgBox;
+    progress_dialog->reset();
+
     if (ret == 0)
     {
         msgBox.setText(QStringLiteral("Create diff.patch Successfully"));
+        m_dir.remove(err_file);
     }
     else
     {
@@ -494,10 +537,6 @@ void MainWindow::on_pushButton_gen_diff_clicked()
     }
 
     msgBox.exec();
-
-    m_diff_file->remove();
-    delete m_diff_file;
-
 }
 
 void MainWindow::findrepo(int deepth)
@@ -854,7 +893,7 @@ bool MainWindow::svn_cli_execute(const QString &addr, const QStringList &args, Q
     p.waitForReadyRead();
 
     if (result) *result = p.readAll() + p.readAllStandardError();
-    else ui->LogText->appendPlainText(p.readAll());
+    else ui->LogText->appendPlainText(p.readAll() + p.readAllStandardError());
 
     return p.exitCode() == 0;
 }
@@ -986,4 +1025,3 @@ void MainWindow::on_pushButton_show_log_clicked()
         svn_tortoise_execute(TortoiseSVNCMD::showlog, m_cur_fliter);
     }
 }
-
