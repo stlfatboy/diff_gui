@@ -254,6 +254,10 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
     int mi = 0;
     int u = 0;
 
+    QString prefix = m_root_repo ? m_addr : m_dirlist.at(workingdir);
+    prefix += '/';
+    auto repo_name_len = m_dirlist.at(workingdir).length() - m_dirlist.at(workingdir).lastIndexOf('/') - 1;
+
     while(-1 != (j = data.indexOf('\n', j)))
     {
         QString line(data.left(j));
@@ -262,18 +266,17 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
         line.replace('\\', '/');
         std::string stline = line.toStdString();
         std::string filename;
-        QString prefix = m_root_repo ? m_addr : m_dirlist.at(workingdir);
-        prefix += '/';
 
         // Modified
+        std::string display = line.insert(4, m_dirlist.at(workingdir).right(repo_name_len)).toStdString();
         std::size_t pos = stline.find_first_of("M");
         if (pos != std::string::npos && pos == 0)
         {
             m++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
-            m_Real_Display.insert({filename, stline});
-            m_Display_Real.insert({stline, filename});
+            m_Real_Display.insert({filename, display});
+            m_Display_Real.insert({display, filename});
             m_Real_Dir.insert({filename, workingdir});
         }
 
@@ -284,8 +287,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             d++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
-            m_Real_Display.insert({filename, stline});
-            m_Display_Real.insert({stline, filename});
+            m_Real_Display.insert({filename, display});
+            m_Display_Real.insert({display, filename});
             m_Real_Dir.insert({filename, workingdir});
         }
 
@@ -296,8 +299,8 @@ void MainWindow::loadfilelist(QByteArray & data, int workingdir)
             a++;
             filename = prefix.toStdString() + stline.substr(8);
             m_filelist << filename.c_str();
-            m_Real_Display.insert({filename, stline});
-            m_Display_Real.insert({stline, filename});
+            m_Real_Display.insert({filename, display});
+            m_Display_Real.insert({display, filename});
             m_Real_Dir.insert({filename, workingdir});
         }
 
@@ -378,7 +381,7 @@ void MainWindow::showfilelist()
             }
         }
         std::string str = m_Real_Display.at(file.toStdString());
-        QListWidgetItem* item = new QListWidgetItem( str.c_str(), ui->Filelistwidget);
+        QListWidgetItem* item = new QListWidgetItem(str.c_str(), ui->Filelistwidget);
         // Store for Future Release
         m_ListItemVec.push_back(item);
         item->setCheckState(m_unchecked_files.contains(QString::fromStdString(str)) ? Qt::Unchecked : Qt::Checked);
@@ -415,7 +418,7 @@ void MainWindow::on_pushButton_gen_diff_clicked()
     if (m_root_repo)
     {
         QStringList args;
-        args << "diff" << "--force";
+        args << "diff";
         unsigned len = 0;
         for(auto target : m_targetfilelist)
         {
@@ -785,7 +788,6 @@ void MainWindow::on_pushButton_svn_ci_clicked()
 void MainWindow::on_Filelistwidget_itemDoubleClicked(QListWidgetItem *item)
 {
     const auto & filename = m_Display_Real.at(item->text().toStdString());
-
     QProcess p;
     const QString program = "TortoiseProc.exe";
     QStringList args;
@@ -976,6 +978,10 @@ void MainWindow::update_repo(int revision)
             progress_dialog->setValue(++count * 100 / m_dirlist.size());
             QCoreApplication::processEvents();
             ret = svn_cli_execute(target, args);
+            if (!ret)
+            {
+                break;
+            }
             args.clear();
         }
     }
@@ -983,9 +989,17 @@ void MainWindow::update_repo(int revision)
     progress_dialog->reset();
 
     QMessageBox msgBox;
-    msgBox.setText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
+    if (ret)
+    {
+        m_target_revision = revision;
+        msgBox.setText(QString("Update to %1 Finished").arg(revision == 0 ? "Latest" : QString::number(revision)));
+    }
+    else
+    {
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("Update Failed");
+    }
     msgBox.exec();
-    m_target_revision = revision;
     qInfo() << "Refresh After Update";
     startupjobs(nullptr);
 }
